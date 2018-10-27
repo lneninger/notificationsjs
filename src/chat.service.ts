@@ -10,7 +10,6 @@ import { HtmlHelpers } from './helpers/html';
 
 
 
-
 export class ChatService {
 
     static chatAttributeName = 'chat';

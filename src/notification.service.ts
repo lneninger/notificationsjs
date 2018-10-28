@@ -4,13 +4,14 @@ declare var messaging: any;
 
 import { ChatHtml } from './html-elements/chathtml';
 import { HtmlHelpers } from './helpers/html';
+import { NotificationGroupService } from './notificationgroup.service';
 
 
 
 
 
 
-export class ChatService {
+export class NotificationService {
 
     static chatAttributeName = 'chat';
 
@@ -19,11 +20,11 @@ export class ChatService {
     static pendingChatTableName = 'pending-chats';
 
     get chatRefPath() {
-        return `${ChatService.chatTableName}/${this.chatId}`;
+        return `${NotificationService.chatTableName}/${this.chatId}`;
     }
 
-    constructor(private instance, private actorType: ActorType, private database: any) {
-        this.chatTableRef = database.ref(ChatService.chatTableName);
+    constructor(private notificationGroupService: NotificationGroupService, private actorType: ActorType, private database: any) {
+        this.chatTableRef = database.ref(NotificationService.chatTableName);
     }
 
     processRemoteMessage(arg0: any): any {
@@ -39,7 +40,7 @@ export class ChatService {
         // Configure instance
         let instance = document.createElement("notification-chat");
         instance.className = '';
-        instance.setAttribute(ChatService.chatAttributeName, this.chatId);
+        instance.setAttribute(NotificationService.chatAttributeName, this.chatId);
         HtmlHelpers.addEvent(instance, 'click', this.headerClick.bind(this));
         result.header = instance;
         result.wrapper.appendChild(instance);
@@ -102,9 +103,9 @@ export class ChatService {
 
         // pending chat
         this.database
-            .ref(ChatService.pendingChatTableName).push({
+            .ref(NotificationService.pendingChatTableName).push({
                 chatId: this.chatId,
-                accessKey: this.instance.key,
+                chatGroupKey: this.notificationGroupService.chatGroupKey,
                 date: this.database.ServerValue.TIMESTAMP
             });
 

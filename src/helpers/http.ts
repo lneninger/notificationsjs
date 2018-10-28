@@ -1,3 +1,6 @@
+
+
+
 export class Http {
     httpCall(method: string, url: string, data: any, callback: (result: any) => any) {
         var xhr = new XMLHttpRequest();

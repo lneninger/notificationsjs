@@ -1,4 +1,4 @@
 
-export { NotificationModule } from './notificationmodule';
-
+export { NotificationModule } from './notification.module';
+export { NotificationGroupService } from './notificationgroup.service';
 

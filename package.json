@@ -3,7 +3,24 @@
   "version": "1.0.3-alpha",
   "author": "HiPalanet",
   "description": "Notifications for web",
+  "homepage": "https://github.com/lneninger/notificationsjs",
+  "bugs": "https://github.com/lneninger/notificationsjs/issues",
+  "contributors": [
+    {
+      "name": "Leonardo Neninger",
+      "email": "lneninger@hipalanet.com"
+    }
+  ],
+  "maintainers": [
+    {
+      "name": "Leonardo Neninger",
+      "email": "lneninger@hipalanet.com"
+    }
+  ],
   "main": "dist/index.js",
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "dev-serve": "lite-server",
     "test": "jasmine --reporter=jasmine-console-reporter --config=test-spec/config/jasmine.json",

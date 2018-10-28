@@ -1,4 +1,5 @@
 
+
 export class NotificationSettings {
     /*Application Core*/
     //var firebaseScriptUrl = 'https://www.gstatic.com/firebasejs/5.5.3/firebase.js';

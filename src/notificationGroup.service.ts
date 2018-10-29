@@ -24,7 +24,7 @@ export class NotificationGroupService {
             return of(this.details);
         }
         else {
-            this.database.ref(`${NotificationGroupService.notificationGroupTableName}`)
+            this.database.ref(`${NotificationGroupService.notificationGroupTableName}/${this.notificationGroupKey}`)
         }
     }
 

@@ -39,7 +39,7 @@ var NotificationGroupService = /** @class */ (function () {
                 return rxjs_1.of(this.details);
             }
             else {
-                this.database.ref("" + NotificationGroupService.notificationGroupTableName);
+                this.database.ref(NotificationGroupService.notificationGroupTableName + "/" + this.notificationGroupKey);
             }
         },
         enumerable: true,

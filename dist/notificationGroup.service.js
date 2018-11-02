@@ -12,16 +12,24 @@ var notification_service_1 = require("./notification.service");
 var rxjs_1 = require("rxjs");
 var NotificationGroupService = /** @class */ (function () {
     function NotificationGroupService(notification, defaultNotificationGroupKey, database, options) {
+        var _this = this;
         this.notification = notification;
         this.database = database;
         // Events
         this.onClientConnected = new rxjs_1.Subject();
         this._notificationGroupKey = defaultNotificationGroupKey;
         this.notifications = [];
+        this._connectedClients = [];
         var defaultOptions = {
             actorType: 'subscriber',
         };
         this.options = __assign({}, defaultOptions, options);
+        //debugger;
+        this.onClientConnected.subscribe(function (res) {
+            //debugger;
+            _this.connectedClients.push(res);
+        });
+        this.connectToGroup();
         if (this.options.actorType == 'subscriber') {
             this.createChat();
         }
@@ -29,6 +37,13 @@ var NotificationGroupService = /** @class */ (function () {
     Object.defineProperty(NotificationGroupService.prototype, "notificationGroupKey", {
         get: function () {
             return this._notificationGroupKey;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(NotificationGroupService.prototype, "connectedClients", {
+        get: function () {
+            return this._connectedClients;
         },
         enumerable: true,
         configurable: true
@@ -45,7 +60,8 @@ var NotificationGroupService = /** @class */ (function () {
         enumerable: true,
         configurable: true
     });
-    NotificationGroupService.prototype.connectToGroup = function () {
+    NotificationGroupService.prototype.connectToGroup = function (notificationGroupKey) {
+        var internalNotificationGroupKey = notificationGroupKey || this.notificationGroupKey;
         var connectedRef;
         if (!this.currentSessionId) {
             connectedRef = this.database.ref("connected/" + this.notificationGroupKey).push();
@@ -55,13 +71,15 @@ var NotificationGroupService = /** @class */ (function () {
             connectedRef = this.database.ref("connected/" + this.notificationGroupKey + "/" + this.currentSessionId);
         }
         connectedRef.onDisconnect().remove();
-        connectedRef.set(true);
+        connectedRef.set({ userId: this.notification.options.userId });
+        this.initializeWatchConnected();
     };
     NotificationGroupService.prototype.initializeWatchConnected = function () {
         var _this = this;
         this.database.ref("connected/" + this.notificationGroupKey).on('child_added', function (snapshot) {
-            _this.onClientConnected.next(snapshot.value());
-            _this.onClientConnected.complete();
+            //debugger;
+            _this.onClientConnected.next({ sessionId: snapshot.key, data: snapshot.val() });
+            //this.onClientConnected.complete();
         });
     };
     NotificationGroupService.prototype.createChat = function () {

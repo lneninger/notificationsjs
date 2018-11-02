@@ -18,6 +18,11 @@ export class NotificationGroupService {
     options: INotificationGroupOptions;
     notifications: NotificationService[];
 
+    _connectedClients: any[];
+    get connectedClients() {
+        return this._connectedClients;
+    }
+
     private _details: any;
     get details(){
         if (this._details) {
@@ -32,6 +37,7 @@ export class NotificationGroupService {
 
         this._notificationGroupKey = defaultNotificationGroupKey;
         this.notifications = [];
+        this._connectedClients = [];
 
         let defaultOptions = <INotificationGroupOptions>{
             actorType: 'subscriber',
@@ -39,12 +45,23 @@ export class NotificationGroupService {
 
         this.options = <INotificationGroupOptions>{ ...defaultOptions, ...options };
 
+        //debugger;
+
+        this.onClientConnected.subscribe(res => {
+            //debugger;
+            this.connectedClients.push(res);
+        });
+
+        this.connectToGroup();
+
         if (this.options.actorType == 'subscriber') {
             this.createChat();
         }
     }
 
-    connectToGroup() {
+    connectToGroup(notificationGroupKey?: string) {
+        let internalNotificationGroupKey = notificationGroupKey || this.notificationGroupKey;
+
         let connectedRef: any;
         if (!this.currentSessionId) {
             connectedRef = this.database.ref(`connected/${this.notificationGroupKey}`).push();
@@ -55,13 +72,16 @@ export class NotificationGroupService {
         }
 
         connectedRef.onDisconnect().remove();
-        connectedRef.set(true);
+        connectedRef.set({userId: this.notification.options.userId });
+
+        this.initializeWatchConnected();
     }
 
     initializeWatchConnected() {
         this.database.ref(`connected/${this.notificationGroupKey}`).on('child_added', snapshot => {
-            this.onClientConnected.next(snapshot.value());
-            this.onClientConnected.complete();
+            //debugger;
+            this.onClientConnected.next({ sessionId: snapshot.key, data: snapshot.val() });
+            //this.onClientConnected.complete();
         });
     }
 

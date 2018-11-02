@@ -1,6 +1,6 @@
 import { HtmlHelpers } from './helpers/html';
 import { NotificationGroupService, INotificationGroupOptions } from './notificationgroup.service';
-import { Http } from './helpers/http';
+import { HttpHelpers } from './helpers/http';
 import { NotificationSettings } from './notification.settings.class';
 import { NotificationHtml } from './html-elements/notificationhtml';
 import { Observable, Subject } from 'rxjs';
@@ -22,7 +22,7 @@ export class NotificationModule {
 
     options: IFocusNotificationOptions;
 
-    private http: Http;
+    private http: HttpHelpers;
 
    
 
@@ -68,7 +68,7 @@ export class NotificationModule {
         this.onInitialized = new Subject<boolean>();
 
 
-        this.http = new Http();
+        this.http = new HttpHelpers();
         this.config();
     }
 
@@ -109,25 +109,31 @@ export class NotificationModule {
     }
 
     initializeApp() {
-        this.firebaseConfig = {
-            apiKey: "AIzaSyCgVdtPw0go7eKPKadhBsbCH85GY6l91tE",
-            authDomain: "focus-notifications.firebaseapp.com",
-            databaseURL: NotificationSettings.firebaseDatabaseUrl,
-            projectId: "focus-notifications",
-            storageBucket: "focus-notifications.appspot.com",
-            messagingSenderId: "95627638743"
-        };
+        debugger;
+        this.http.httpCall('GET', 'https://us-central1-focus-notifications.cloudfunctions.net/getFirebaseConfig', null, (res) => {
+            debugger;
+            console.log('Initializing Firebase Application: ', this.firebaseConfig);
+            this.firebase = firebase.initializeApp(this.firebaseConfig, NotificationSettings.firebaseLocalApplicationName);
+
+            this.database = this.firebase.database();
+            //console.log(`Firebase: ${JSON.stringify(firebase)}`);
+            console.log('Application Name: ', this.firebase.name);
+
+            this.setupScriptsDone = true;
+
+        });
+        //this.firebaseConfig = {
+        //    apiKey: "AIzaSyCgVdtPw0go7eKPKadhBsbCH85GY6l91tE",
+        //    authDomain: "focus-notifications.firebaseapp.com",
+        //    databaseURL: NotificationSettings.firebaseDatabaseUrl,
+        //    projectId: "focus-notifications",
+        //    storageBucket: "focus-notifications.appspot.com",
+        //    messagingSenderId: "95627638743"
+        //};
 
 
 
-        console.log('Initializing Firebase Application: ', this.firebaseConfig);
-        this.firebase = firebase.initializeApp(this.firebaseConfig, NotificationSettings.firebaseLocalApplicationName);
-
-        this.database = this.firebase.database();
-        //console.log(`Firebase: ${JSON.stringify(firebase)}`);
-        console.log('Application Name: ', this.firebase.name);
-
-        this.setupScriptsDone = true;
+        
     }
 
     initializeChatGroups() {
@@ -147,6 +153,7 @@ export class NotificationModule {
 
 
     createChatGroup(accountKey: string, options?: INotificationGroupOptions) {
+        // debugger;
         let group = new NotificationGroupService(this, this.defaultChatGroupKey, this.database, options);
         this.notificationGroups.push(group);
     }
@@ -156,6 +163,8 @@ export class NotificationModule {
 
 export interface IFocusNotificationOptions {
     defaultActorType: ActorType,
+    currentUserCookieName?: string;
     currentSessionCookieName?: string;
     currentSessionCookieExpiresInMinutes?: number;
+    userId?: string;
 }

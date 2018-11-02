@@ -34,7 +34,7 @@ var NotificationModule = /** @class */ (function () {
         this.options = __assign({}, defaultOptions, (options || {}));
         // Events
         this.onInitialized = new rxjs_1.Subject();
-        this.http = new http_1.Http();
+        this.http = new http_1.HttpHelpers();
         this.config();
     }
     Object.defineProperty(NotificationModule.prototype, "currentSessionId", {
@@ -74,20 +74,25 @@ var NotificationModule = /** @class */ (function () {
         this.onInitialized.complete();
     };
     NotificationModule.prototype.initializeApp = function () {
-        this.firebaseConfig = {
-            apiKey: "AIzaSyCgVdtPw0go7eKPKadhBsbCH85GY6l91tE",
-            authDomain: "focus-notifications.firebaseapp.com",
-            databaseURL: notification_settings_class_1.NotificationSettings.firebaseDatabaseUrl,
-            projectId: "focus-notifications",
-            storageBucket: "focus-notifications.appspot.com",
-            messagingSenderId: "95627638743"
-        };
-        console.log('Initializing Firebase Application: ', this.firebaseConfig);
-        this.firebase = firebase.initializeApp(this.firebaseConfig, notification_settings_class_1.NotificationSettings.firebaseLocalApplicationName);
-        this.database = this.firebase.database();
-        //console.log(`Firebase: ${JSON.stringify(firebase)}`);
-        console.log('Application Name: ', this.firebase.name);
-        this.setupScriptsDone = true;
+        var _this = this;
+        debugger;
+        this.http.httpCall('GET', 'https://us-central1-focus-notifications.cloudfunctions.net/getFirebaseConfig', null, function (res) {
+            debugger;
+            console.log('Initializing Firebase Application: ', _this.firebaseConfig);
+            _this.firebase = firebase.initializeApp(_this.firebaseConfig, notification_settings_class_1.NotificationSettings.firebaseLocalApplicationName);
+            _this.database = _this.firebase.database();
+            //console.log(`Firebase: ${JSON.stringify(firebase)}`);
+            console.log('Application Name: ', _this.firebase.name);
+            _this.setupScriptsDone = true;
+        });
+        //this.firebaseConfig = {
+        //    apiKey: "AIzaSyCgVdtPw0go7eKPKadhBsbCH85GY6l91tE",
+        //    authDomain: "focus-notifications.firebaseapp.com",
+        //    databaseURL: NotificationSettings.firebaseDatabaseUrl,
+        //    projectId: "focus-notifications",
+        //    storageBucket: "focus-notifications.appspot.com",
+        //    messagingSenderId: "95627638743"
+        //};
     };
     NotificationModule.prototype.initializeChatGroups = function () {
         if (this.options.defaultActorType == 'subscriber') {

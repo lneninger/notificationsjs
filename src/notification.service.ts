@@ -105,7 +105,7 @@ export class NotificationService {
         this.database
             .ref(NotificationService.pendingChatTableName).push({
                 chatId: this.chatId,
-                chatGroupKey: this.notificationGroupService.chatGroupKey,
+                chatGroupKey: this.notificationGroupService.notificationGroupKey,
                 date: this.database.ServerValue.TIMESTAMP
             });
 

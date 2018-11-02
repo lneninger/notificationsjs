@@ -81,7 +81,7 @@ var NotificationService = /** @class */ (function () {
         this.database
             .ref(NotificationService.pendingChatTableName).push({
             chatId: this.chatId,
-            chatGroupKey: this.notificationGroupService.chatGroupKey,
+            chatGroupKey: this.notificationGroupService.notificationGroupKey,
             date: this.database.ServerValue.TIMESTAMP
         });
         //this.chatRef = this.database

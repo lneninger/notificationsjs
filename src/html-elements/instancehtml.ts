@@ -1,12 +1,12 @@
 import { ChatHtml } from './chathtml';
 import { HtmlHelpers } from '../helpers/html';
 import { Subject } from 'rxjs';
-import { ChatGroupService } from '../chatgroup.service';
+import { NotificationGroupService } from '../notificationgroup.service';
 
 
 export class InstanceHtml {
     static InstanceNameAttributeName = 'instance';
-    static createWidgetShell(chatGroupService: ChatGroupService) {
+    static createWidgetShell(notificationGroupService: NotificationGroupService) {
         // Configure Wrapper
         let result = new InstanceHtml();
 
@@ -16,7 +16,7 @@ export class InstanceHtml {
         // Configure instance
         let instanceElement = document.createElement("notification-instance");
         instanceElement.className = '';
-        instanceElement.setAttribute(InstanceHtml.InstanceNameAttributeName, chatGroupService.accountKey);
+        instanceElement.setAttribute(InstanceHtml.InstanceNameAttributeName, notificationGroupService.notification.accountKey);
         HtmlHelpers.addEvent(instanceElement, 'click', ($event: Event) => { result.headerClick.next({ $event: $event }) });
         result.wrapper = instanceElement;
 
@@ -34,7 +34,7 @@ export class InstanceHtml {
         this.headerClick = new Subject<IInstanceEventParams>();
     }
 
-    static getInstanceByElement(element: Element, groups: ChatGroupService[]) {
+    static getINotificationGroupByElement(element: Element, notificationGroups: NotificationGroupService[]) {
         let loopElement: Node = element;
         let selector = 'notification-instance';
 
@@ -42,7 +42,7 @@ export class InstanceHtml {
         if (instanceElement != null) {
 
             let instanceAttr = (<Element>loopElement).getAttribute(InstanceHtml.InstanceNameAttributeName);
-            let matchInstances = groups.filter(instance => instance.accountKey);
+            let matchInstances = notificationGroups.filter(group => group.notification.accountKey);
             if (matchInstances.length > 0) {
                 return matchInstances[0];
             }
@@ -63,6 +63,6 @@ export class InstanceHtml {
 
 export interface IInstanceEventParams {
     $event: Event,
-    chatGroupService?: ChatGroupService,
+    notificationGroupService?: NotificationGroupService,
     instanceHtml?: InstanceHtml
 }

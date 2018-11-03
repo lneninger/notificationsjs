@@ -2,6 +2,7 @@ import { NotificationModule } from './notification.module';
 import { HtmlHelpers } from './helpers/html';
 import { NotificationService } from './notification.service';
 import { Subject, Observable, of } from 'rxjs';
+import { NotificationMessage } from './notificationmessage.class';
 
 export class NotificationGroupService {
     // Events
@@ -33,7 +34,7 @@ export class NotificationGroupService {
         }
     }
 
-    constructor(private notification: NotificationModule, defaultNotificationGroupKey: string, private database: any, options: INotificationGroupOptions) {
+    constructor(public notification: NotificationModule, defaultNotificationGroupKey: string, private database: any, options: INotificationGroupOptions) {
 
         this._notificationGroupKey = defaultNotificationGroupKey;
         this.notifications = [];
@@ -85,11 +86,9 @@ export class NotificationGroupService {
         });
     }
 
-
     createChat(): any {
         let chat = new NotificationService(this, this.options.actorType, this.database);
     }
-
 
     processRemoteMessage(message: NotificationMessage): any {
         let chatId = message.chatId;

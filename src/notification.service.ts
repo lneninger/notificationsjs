@@ -10,7 +10,6 @@ import { NotificationGroupService } from './notificationgroup.service';
 
 
 
-
 export class NotificationService {
 
     static chatAttributeName = 'chat';
@@ -22,6 +21,7 @@ export class NotificationService {
     get chatRefPath() {
         return `${NotificationService.chatTableName}/${this.chatId}`;
     }
+
 
     constructor(private notificationGroupService: NotificationGroupService, private actorType: ActorType, private database: any) {
         this.chatTableRef = database.ref(NotificationService.chatTableName);
@@ -100,6 +100,8 @@ export class NotificationService {
         this.chatTableRef.child(this.chatId).set({
             date: this.database.ServerValue.TIMESTAMP
         });
+
+
 
         // pending chat
         this.database

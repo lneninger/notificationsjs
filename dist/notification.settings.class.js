@@ -8,6 +8,7 @@ var NotificationSettings = /** @class */ (function () {
     NotificationSettings.firebaseAppScriptUrl = 'https://www.gstatic.com/firebasejs/5.5.5/firebase-app.js';
     NotificationSettings.firebaseMessagingScriptUrl = 'https://www.gstatic.com/firebasejs/5.5.5/firebase-messaging.js';
     NotificationSettings.firebaseDatabaseScriptUrl = 'https://www.gstatic.com/firebasejs/5.5.5/firebase-database.js';
+    NotificationSettings.firebaseFunctionsScriptUrl = 'https://www.gstatic.com/firebasejs/5.5.5/firebase-functions.js';
     NotificationSettings.fontawesomeJsUrl = 'https://use.fontawesome.com/d0aafd5830.js';
     NotificationSettings.styleUrl = 'https://localhost:5001/widget/styles/app.css';
     /*Firebase Configuration*/

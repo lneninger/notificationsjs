@@ -5,4 +5,4 @@ require.main.require = function (pathName) {
     const newPath = path.join(__dirname, '../', pathName);
     console.log('test execution path', newPath);
     return require(newPath);
-}
+};

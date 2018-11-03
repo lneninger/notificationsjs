@@ -15,11 +15,11 @@ var notification_settings_class_1 = require("./notification.settings.class");
 var rxjs_1 = require("rxjs");
 var NotificationModule = /** @class */ (function () {
     function NotificationModule(accountKey, defaultChatGroupKey, options) {
-        this.accountKey = accountKey;
         this.defaultChatGroupKey = defaultChatGroupKey;
         // Setup scripts
         this.setupScriptsDone = false;
         this.firebaseScriptsLoaded = 0;
+        this._accountKey = accountKey;
         if (!accountKey) {
             throw 'accountKey is required';
         }
@@ -34,9 +34,16 @@ var NotificationModule = /** @class */ (function () {
         this.options = __assign({}, defaultOptions, (options || {}));
         // Events
         this.onInitialized = new rxjs_1.Subject();
-        this.http = new http_1.Http();
+        this.http = new http_1.HttpHelpers();
         this.config();
     }
+    Object.defineProperty(NotificationModule.prototype, "accountKey", {
+        get: function () {
+            return this._accountKey;
+        },
+        enumerable: true,
+        configurable: true
+    });
     Object.defineProperty(NotificationModule.prototype, "currentSessionId", {
         get: function () {
             return html_1.HtmlHelpers.getCookie(this.options.currentSessionCookieName);
@@ -60,34 +67,47 @@ var NotificationModule = /** @class */ (function () {
         var _this = this;
         //HtmlHelpers.addStyle(NotificationSettings.styleUrl, null, null);
         html_1.HtmlHelpers.addScript(notification_settings_class_1.NotificationSettings.firebaseAppScriptUrl, function () {
-            html_1.HtmlHelpers.addScript([notification_settings_class_1.NotificationSettings.firebaseMessagingScriptUrl, notification_settings_class_1.NotificationSettings.firebaseDatabaseScriptUrl], _this.firebaseScriptOnLoadFunction.bind(_this), _this.firebaseScriptOnErrorFunction.bind(_this));
+            html_1.HtmlHelpers.addScript([notification_settings_class_1.NotificationSettings.firebaseMessagingScriptUrl, notification_settings_class_1.NotificationSettings.firebaseDatabaseScriptUrl, notification_settings_class_1.NotificationSettings.firebaseFunctionsScriptUrl], _this.firebaseScriptOnLoadFunction.bind(_this), _this.firebaseScriptOnErrorFunction.bind(_this));
         }, this.firebaseScriptOnErrorFunction.bind(this));
     };
     NotificationModule.prototype.firebaseScriptOnErrorFunction = function () {
         console.log('Firebase script was not loaded!!');
     };
     NotificationModule.prototype.firebaseScriptOnLoadFunction = function (element, event) {
+        var _this = this;
         console.log('Firebase script was loaded!!');
-        this.initializeApp();
-        this.initializeChatGroups();
-        this.onInitialized.next(true);
-        this.onInitialized.complete();
+        this.initializeApp().subscribe(function (res) {
+            _this.initializeChatGroups();
+            _this.onInitialized.next(true);
+            _this.onInitialized.complete();
+        });
     };
     NotificationModule.prototype.initializeApp = function () {
-        this.firebaseConfig = {
-            apiKey: "AIzaSyCgVdtPw0go7eKPKadhBsbCH85GY6l91tE",
-            authDomain: "focus-notifications.firebaseapp.com",
-            databaseURL: notification_settings_class_1.NotificationSettings.firebaseDatabaseUrl,
-            projectId: "focus-notifications",
-            storageBucket: "focus-notifications.appspot.com",
-            messagingSenderId: "95627638743"
-        };
-        console.log('Initializing Firebase Application: ', this.firebaseConfig);
-        this.firebase = firebase.initializeApp(this.firebaseConfig, notification_settings_class_1.NotificationSettings.firebaseLocalApplicationName);
-        this.database = this.firebase.database();
-        //console.log(`Firebase: ${JSON.stringify(firebase)}`);
-        console.log('Application Name: ', this.firebase.name);
-        this.setupScriptsDone = true;
+        var _this = this;
+        debugger;
+        var initAppObservable = rxjs_1.Observable.create(function (observer) {
+            _this.http.httpCall('GET', 'https://us-central1-focus-notifications.cloudfunctions.net/getFirebaseConfig', null, function (res) {
+                debugger;
+                _this.firebaseConfig = res;
+                console.log('Initializing Firebase Application: ', _this.firebaseConfig);
+                _this.firebase = firebase.initializeApp(_this.firebaseConfig, notification_settings_class_1.NotificationSettings.firebaseLocalApplicationName);
+                _this.database = _this.firebase.database();
+                //console.log(`Firebase: ${JSON.stringify(firebase)}`);
+                console.log('Application Name: ', _this.firebase.name);
+                _this.setupScriptsDone = true;
+                observer.next();
+                observer.complete();
+            });
+        });
+        return initAppObservable;
+        //this.firebaseConfig = {
+        //    apiKey: "AIzaSyCgVdtPw0go7eKPKadhBsbCH85GY6l91tE",
+        //    authDomain: "focus-notifications.firebaseapp.com",
+        //    databaseURL: NotificationSettings.firebaseDatabaseUrl,
+        //    projectId: "focus-notifications",
+        //    storageBucket: "focus-notifications.appspot.com",
+        //    messagingSenderId: "95627638743"
+        //};
     };
     NotificationModule.prototype.initializeChatGroups = function () {
         if (this.options.defaultActorType == 'subscriber') {

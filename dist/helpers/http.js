@@ -1,9 +1,10 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-var Http = /** @class */ (function () {
-    function Http() {
+var HttpHelpers = /** @class */ (function () {
+    function HttpHelpers() {
     }
-    Http.prototype.httpCall = function (method, url, data, callback) {
+    HttpHelpers.prototype.httpCall = function (method, url, data, callback) {
+        console.log(method + ": " + url);
         var xhr = new XMLHttpRequest();
         xhr.open(method, url, true);
         if (callback)
@@ -15,7 +16,7 @@ var Http = /** @class */ (function () {
         else
             xhr.send();
     };
-    return Http;
+    return HttpHelpers;
 }());
-exports.Http = Http;
+exports.HttpHelpers = HttpHelpers;
 //# sourceMappingURL=http.js.map

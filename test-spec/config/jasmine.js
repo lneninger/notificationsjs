@@ -13,7 +13,7 @@ jasmine.loadConfig({
 
     stopSpecOnExpectationFailure: false,
 
-    random: false,
+    random: false
 });
 
 // setup console reporter

@@ -9,7 +9,7 @@ var defaultDocumentFeatures = {
 
 const options = {
     resources: 'usable',
-    runScripts: 'dangerously',
+    runScripts: 'dangerously'
 };
 
 var html = `<html><head></head><body><div id="rondavu_container"></div></body></html>`;

@@ -9,6 +9,7 @@ declare var Firebase: any;
 declare var firebase: any;
 declare var messaging: any;
 
+
 export class NotificationModule {
 
     // Setup scripts
@@ -24,13 +25,16 @@ export class NotificationModule {
 
     private http: HttpHelpers;
 
-   
-
     private notificationGroups: NotificationGroupService[];
     private firebaseScriptsLoaded: number = 0;
 
-
     currentSessionCookieName: string;
+
+    _accountKey: string;
+    get accountKey() {
+        return this._accountKey;
+    }
+
 
     get currentSessionId() {
         return HtmlHelpers.getCookie(this.options.currentSessionCookieName);
@@ -44,7 +48,8 @@ export class NotificationModule {
     // Events
     onInitialized: Subject<boolean>;
 
-    constructor(private accountKey: string, private defaultChatGroupKey?: string, options?: IFocusNotificationOptions) {
+    constructor(accountKey: string, private defaultChatGroupKey?: string, options?: IFocusNotificationOptions) {
+        this._accountKey = accountKey;
         if (!accountKey) {
             throw 'accountKey is required';
         }
@@ -86,8 +91,8 @@ export class NotificationModule {
 
     addFirebaseScript() {
             //HtmlHelpers.addStyle(NotificationSettings.styleUrl, null, null);
-            HtmlHelpers.addScript(NotificationSettings.firebaseAppScriptUrl, () => {
-                HtmlHelpers.addScript([NotificationSettings.firebaseMessagingScriptUrl, NotificationSettings.firebaseDatabaseScriptUrl], this.firebaseScriptOnLoadFunction.bind(this), this.firebaseScriptOnErrorFunction.bind(this));
+        HtmlHelpers.addScript(NotificationSettings.firebaseAppScriptUrl, () => {
+            HtmlHelpers.addScript([NotificationSettings.firebaseMessagingScriptUrl, NotificationSettings.firebaseDatabaseScriptUrl, NotificationSettings.firebaseFunctionsScriptUrl], this.firebaseScriptOnLoadFunction.bind(this), this.firebaseScriptOnErrorFunction.bind(this));
             }
                 , this.firebaseScriptOnErrorFunction.bind(this));
 
@@ -101,27 +106,36 @@ export class NotificationModule {
        
         console.log('Firebase script was loaded!!');
         
-        this.initializeApp();
+        this.initializeApp().subscribe(res => {
+            this.initializeChatGroups();
+            this.onInitialized.next(true);
+            this.onInitialized.complete();
+        });
 
-        this.initializeChatGroups();
-        this.onInitialized.next(true);
-        this.onInitialized.complete();
+        
     }
 
     initializeApp() {
         debugger;
-        this.http.httpCall('GET', 'https://us-central1-focus-notifications.cloudfunctions.net/getFirebaseConfig', null, (res) => {
-            debugger;
-            console.log('Initializing Firebase Application: ', this.firebaseConfig);
-            this.firebase = firebase.initializeApp(this.firebaseConfig, NotificationSettings.firebaseLocalApplicationName);
+        let initAppObservable = Observable.create(observer => {
+            this.http.httpCall('GET', 'https://us-central1-focus-notifications.cloudfunctions.net/getFirebaseConfig', null, (res) => {
+                debugger;
+                this.firebaseConfig = res;
+                console.log('Initializing Firebase Application: ', this.firebaseConfig);
+                this.firebase = firebase.initializeApp(this.firebaseConfig, NotificationSettings.firebaseLocalApplicationName);
 
-            this.database = this.firebase.database();
-            //console.log(`Firebase: ${JSON.stringify(firebase)}`);
-            console.log('Application Name: ', this.firebase.name);
+                this.database = this.firebase.database();
+                //console.log(`Firebase: ${JSON.stringify(firebase)}`);
+                console.log('Application Name: ', this.firebase.name);
 
-            this.setupScriptsDone = true;
-
+                this.setupScriptsDone = true;
+                observer.next();
+                observer.complete();
+            });
         });
+        
+        return initAppObservable;
+
         //this.firebaseConfig = {
         //    apiKey: "AIzaSyCgVdtPw0go7eKPKadhBsbCH85GY6l91tE",
         //    authDomain: "focus-notifications.firebaseapp.com",
@@ -130,10 +144,6 @@ export class NotificationModule {
         //    storageBucket: "focus-notifications.appspot.com",
         //    messagingSenderId: "95627638743"
         //};
-
-
-
-        
     }
 
     initializeChatGroups() {
@@ -149,16 +159,14 @@ export class NotificationModule {
         }
     }
 
-
-
-
     createChatGroup(accountKey: string, options?: INotificationGroupOptions) {
         // debugger;
         let group = new NotificationGroupService(this, this.defaultChatGroupKey, this.database, options);
         this.notificationGroups.push(group);
     }
-
 }
+
+
 
 
 export interface IFocusNotificationOptions {

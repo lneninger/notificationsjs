@@ -96,4 +96,4 @@ var NotificationGroupService = /** @class */ (function () {
     return NotificationGroupService;
 }());
 exports.NotificationGroupService = NotificationGroupService;
-//# sourceMappingURL=notificationGroup.service.js.map
+//# sourceMappingURL=notificationgroup.service.js.map

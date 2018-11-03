@@ -8,12 +8,13 @@
     "removeComments": false,
     "sourceMap": true,
     "target": "es5",
-    "sourceRoot": "./src",
+    "rootDir": "./src",
     "outDir": "dist"
   },
   "exclude": [
     "dist",
-    "node_modules"
+    "node_modules",
+    "firebase-functions"
   ]
 
 }

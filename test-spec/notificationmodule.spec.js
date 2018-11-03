@@ -14,8 +14,8 @@ describe("Notification Module instanciation", function () {
         console.log('Executing beforeAll: Subscribing to resolve the async call');
         var intervalSetupScriptsDone = setInterval(function () {
             console.log('Executing beforeAll: wait to load script done...');
-            console.log(util.inspect({ 'test': 123 }, false, null, true /* enable colors */))
-            if (notificationModule.setupScriptsDone == true) {
+            console.log(util.inspect({ 'test': 123 }, false, null, true /* enable colors */));
+            if (notificationModule.setupScriptsDone === true) {
                 console.log('Executing beforeAll: Resolving async call');
                 clearInterval(intervalSetupScriptsDone);
                 deferred.resolve();
@@ -26,7 +26,7 @@ describe("Notification Module instanciation", function () {
 
         deferred.done(function () {
             console.log('Executing beforeAll: Marking it as Done');
-            console.log(util.inspect({ 'test': 123 }, false, null, true /* enable colors */))
+            console.log(util.inspect({ 'test': 123 }, false, null, true /* enable colors */));
             done();
         });
     });

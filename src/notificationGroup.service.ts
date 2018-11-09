@@ -1,8 +1,12 @@
 import { NotificationModule } from './notification.module';
 import { HtmlHelpers } from './helpers/html';
-import { NotificationService } from './notification.service';
-import { Subject, Observable, of } from 'rxjs';
+import { NotificationChannelService } from './notificationchannel.service';
+import { Subject, Observable, of, pipe } from 'rxjs';
+import { mergeMap, map } from 'rxjs/operators';
 import { NotificationMessage } from './notificationmessage.class';
+import { INotificationGroupOptions, INotificationGroupClient } from './models';
+
+
 
 export class NotificationGroupService {
     // Events
@@ -17,7 +21,7 @@ export class NotificationGroupService {
     }
 
     options: INotificationGroupOptions;
-    notifications: NotificationService[];
+    notificationChannels: NotificationChannelService[];
 
     _connectedClients: any[];
     get connectedClients() {
@@ -25,7 +29,7 @@ export class NotificationGroupService {
     }
 
     private _details: any;
-    get details(){
+    get details() {
         if (this._details) {
             return of(this.details);
         }
@@ -37,7 +41,7 @@ export class NotificationGroupService {
     constructor(public notification: NotificationModule, defaultNotificationGroupKey: string, private database: any, options: INotificationGroupOptions) {
 
         this._notificationGroupKey = defaultNotificationGroupKey;
-        this.notifications = [];
+        this.notificationChannels = [];
         this._connectedClients = [];
 
         let defaultOptions = <INotificationGroupOptions>{
@@ -46,7 +50,8 @@ export class NotificationGroupService {
 
         this.options = <INotificationGroupOptions>{ ...defaultOptions, ...options };
 
-        //debugger;
+        console.log(`Setting onClientConnected`);
+        debugger;
 
         this.onClientConnected.subscribe(res => {
             //debugger;
@@ -55,9 +60,9 @@ export class NotificationGroupService {
 
         this.connectToGroup();
 
-        if (this.options.actorType == 'subscriber') {
-            this.createChat();
-        }
+        //if (this.options.actorType == 'subscriber') {
+        //    this.createNotificationChannel();
+        //}
     }
 
     connectToGroup(notificationGroupKey?: string) {
@@ -73,7 +78,8 @@ export class NotificationGroupService {
         }
 
         connectedRef.onDisconnect().remove();
-        connectedRef.set({userId: this.notification.options.userId });
+        let connectedData = <INotificationGroupClient>{ clientId: this.notification.options.userId, sessionId: connectedRef.key };
+        connectedRef.set(connectedData);
 
         this.initializeWatchConnected();
     }
@@ -81,27 +87,51 @@ export class NotificationGroupService {
     initializeWatchConnected() {
         this.database.ref(`connected/${this.notificationGroupKey}`).on('child_added', snapshot => {
             //debugger;
-            this.onClientConnected.next({ sessionId: snapshot.key, data: snapshot.val() });
+            let key = snapshot.key;
+            let data = <INotificationGroupClient>snapshot.val();
+            //debugger;
+            // If connected udser is not the current user send connection event
+            if (data.clientId != this.notification.options.userId) {
+                this.onClientConnected.next(data);
+            }
             //this.onClientConnected.complete();
         });
     }
 
-    createChat(): any {
-        let chat = new NotificationService(this, this.options.actorType, this.database);
+    getNotificationChannelByClient(client: INotificationGroupClient) {
+        return this.notificationChannels.filter(o => o.client.sessionId == client.sessionId);
     }
 
-    processRemoteMessage(message: NotificationMessage): any {
-        let chatId = message.chatId;
-        let chats = this.notifications.filter(o => o.chatId == chatId);
-        if (chats.length > 0) {
-            chats[0].processRemoteMessage(message);
+    onSelectNotificationGroupClient(client: INotificationGroupClient): Observable<NotificationChannelService> {
+
+        let observable: Observable<NotificationChannelService>;
+        //debugger;
+        let channel = this.getNotificationChannelByClient(client);
+        if (channel.length > 0) {
+                observable = of(channel[0]);
         }
+        else {
+            let channel = NotificationChannelService.create(client, this);
+            //debugger;
+            
+        }
+       
+
+        return observable;
     }
-}
 
-export interface INotificationGroupOptions {
-    actorType: ActorType;
-}
+   
 
-export interface INotificationGroupDetails {
+
+    //createNotificationChannel(): any {
+    //    let notification = new NotificationChannelService.create(this, this.options.actorType, this.database);
+    //}
+
+    //processRemoteMessage(message: NotificationMessage): any {
+    //    let chatId = message.chatId;
+    //    let chats = this.notifications.filter(o => o.chatId == chatId);
+    //    if (chats.length > 0) {
+    //        chats[0].processRemoteMessage(message);
+    //    }
+    //}
 }

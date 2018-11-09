@@ -84,10 +84,10 @@ var NotificationModule = /** @class */ (function () {
     };
     NotificationModule.prototype.initializeApp = function () {
         var _this = this;
-        debugger;
+        // debugger;
         var initAppObservable = rxjs_1.Observable.create(function (observer) {
             _this.http.httpCall('GET', 'https://us-central1-focus-notifications.cloudfunctions.net/getFirebaseConfig', null, function (res) {
-                debugger;
+                // debugger;
                 _this.firebaseConfig = res;
                 console.log('Initializing Firebase Application: ', _this.firebaseConfig);
                 _this.firebase = firebase.initializeApp(_this.firebaseConfig, notification_settings_class_1.NotificationSettings.firebaseLocalApplicationName);
@@ -114,13 +114,13 @@ var NotificationModule = /** @class */ (function () {
             var options = {
                 actorType: 'subscriber'
             };
-            this.createChatGroup(this.defaultChatGroupKey, options);
+            this.bindToNotificationGroup(this.defaultChatGroupKey, options);
         }
         else {
             // if attendant get chatgroups hosted by the current account
         }
     };
-    NotificationModule.prototype.createChatGroup = function (accountKey, options) {
+    NotificationModule.prototype.bindToNotificationGroup = function (accountKey, options) {
         // debugger;
         var group = new notificationgroup_service_1.NotificationGroupService(this, this.defaultChatGroupKey, this.database, options);
         this.notificationGroups.push(group);

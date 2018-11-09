@@ -8,7 +8,7 @@ var __assign = (this && this.__assign) || Object.assign || function(t) {
     return t;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-var notification_service_1 = require("./notification.service");
+var notificationchannel_service_1 = require("./notificationchannel.service");
 var rxjs_1 = require("rxjs");
 var NotificationGroupService = /** @class */ (function () {
     function NotificationGroupService(notification, defaultNotificationGroupKey, database, options) {
@@ -18,21 +18,22 @@ var NotificationGroupService = /** @class */ (function () {
         // Events
         this.onClientConnected = new rxjs_1.Subject();
         this._notificationGroupKey = defaultNotificationGroupKey;
-        this.notifications = [];
+        this.notificationChannels = [];
         this._connectedClients = [];
         var defaultOptions = {
             actorType: 'subscriber',
         };
         this.options = __assign({}, defaultOptions, options);
-        //debugger;
+        console.log("Setting onClientConnected");
+        debugger;
         this.onClientConnected.subscribe(function (res) {
             //debugger;
             _this.connectedClients.push(res);
         });
         this.connectToGroup();
-        if (this.options.actorType == 'subscriber') {
-            this.createChat();
-        }
+        //if (this.options.actorType == 'subscriber') {
+        //    this.createNotificationChannel();
+        //}
     }
     Object.defineProperty(NotificationGroupService.prototype, "notificationGroupKey", {
         get: function () {
@@ -71,26 +72,39 @@ var NotificationGroupService = /** @class */ (function () {
             connectedRef = this.database.ref("connected/" + this.notificationGroupKey + "/" + this.currentSessionId);
         }
         connectedRef.onDisconnect().remove();
-        connectedRef.set({ userId: this.notification.options.userId });
+        var connectedData = { clientId: this.notification.options.userId, sessionId: connectedRef.key };
+        connectedRef.set(connectedData);
         this.initializeWatchConnected();
     };
     NotificationGroupService.prototype.initializeWatchConnected = function () {
         var _this = this;
         this.database.ref("connected/" + this.notificationGroupKey).on('child_added', function (snapshot) {
             //debugger;
-            _this.onClientConnected.next({ sessionId: snapshot.key, data: snapshot.val() });
+            var key = snapshot.key;
+            var data = snapshot.val();
+            //debugger;
+            // If connected udser is not the current user send connection event
+            if (data.clientId != _this.notification.options.userId) {
+                _this.onClientConnected.next(data);
+            }
             //this.onClientConnected.complete();
         });
     };
-    NotificationGroupService.prototype.createChat = function () {
-        var chat = new notification_service_1.NotificationService(this, this.options.actorType, this.database);
+    NotificationGroupService.prototype.getNotificationChannelByClient = function (client) {
+        return this.notificationChannels.filter(function (o) { return o.client.sessionId == client.sessionId; });
     };
-    NotificationGroupService.prototype.processRemoteMessage = function (message) {
-        var chatId = message.chatId;
-        var chats = this.notifications.filter(function (o) { return o.chatId == chatId; });
-        if (chats.length > 0) {
-            chats[0].processRemoteMessage(message);
+    NotificationGroupService.prototype.onSelectNotificationGroupClient = function (client) {
+        var observable;
+        //debugger;
+        var channel = this.getNotificationChannelByClient(client);
+        if (channel.length > 0) {
+            observable = rxjs_1.of(channel[0]);
         }
+        else {
+            var channel_1 = notificationchannel_service_1.NotificationChannelService.create(client, this);
+            //debugger;
+        }
+        return observable;
     };
     NotificationGroupService.notificationGroupTableName = 'notification-groups';
     return NotificationGroupService;

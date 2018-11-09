@@ -116,10 +116,10 @@ export class NotificationModule {
     }
 
     initializeApp() {
-        debugger;
+        // debugger;
         let initAppObservable = Observable.create(observer => {
             this.http.httpCall('GET', 'https://us-central1-focus-notifications.cloudfunctions.net/getFirebaseConfig', null, (res) => {
-                debugger;
+                // debugger;
                 this.firebaseConfig = res;
                 console.log('Initializing Firebase Application: ', this.firebaseConfig);
                 this.firebase = firebase.initializeApp(this.firebaseConfig, NotificationSettings.firebaseLocalApplicationName);
@@ -152,14 +152,14 @@ export class NotificationModule {
                 actorType: 'subscriber'
             };
 
-            this.createChatGroup(this.defaultChatGroupKey, options);
+            this.bindToNotificationGroup(this.defaultChatGroupKey, options);
         }
         else {
             // if attendant get chatgroups hosted by the current account
         }
     }
 
-    createChatGroup(accountKey: string, options?: INotificationGroupOptions) {
+    bindToNotificationGroup(accountKey: string, options?: INotificationGroupOptions) {
         // debugger;
         let group = new NotificationGroupService(this, this.defaultChatGroupKey, this.database, options);
         this.notificationGroups.push(group);

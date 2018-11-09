@@ -6,14 +6,14 @@ var InstanceHtml = /** @class */ (function () {
     function InstanceHtml() {
         this.headerClick = new rxjs_1.Subject();
     }
-    InstanceHtml.createWidgetShell = function (chatGroupService) {
+    InstanceHtml.createWidgetShell = function (notificationGroupService) {
         // Configure Wrapper
         var result = new InstanceHtml();
         //HtmlHelpers.addClass(this.elements.wrapper, this.collapsedClass);
         // Configure instance
         var instanceElement = document.createElement("notification-instance");
         instanceElement.className = '';
-        instanceElement.setAttribute(InstanceHtml.InstanceNameAttributeName, chatGroupService.accountKey);
+        instanceElement.setAttribute(InstanceHtml.InstanceNameAttributeName, notificationGroupService.notification.accountKey);
         html_1.HtmlHelpers.addEvent(instanceElement, 'click', function ($event) { result.headerClick.next({ $event: $event }); });
         result.wrapper = instanceElement;
         var header = document.createElement("notification-header");
@@ -22,13 +22,13 @@ var InstanceHtml = /** @class */ (function () {
         result.wrapper.appendChild(header);
         return result;
     };
-    InstanceHtml.getInstanceByElement = function (element, groups) {
+    InstanceHtml.getINotificationGroupByElement = function (element, notificationGroups) {
         var loopElement = element;
         var selector = 'notification-instance';
         var instanceElement = html_1.HtmlHelpers.getParent(element, selector);
         if (instanceElement != null) {
             var instanceAttr = loopElement.getAttribute(InstanceHtml.InstanceNameAttributeName);
-            var matchInstances = groups.filter(function (instance) { return instance.accountKey; });
+            var matchInstances = notificationGroups.filter(function (group) { return group.notification.accountKey; });
             if (matchInstances.length > 0) {
                 return matchInstances[0];
             }

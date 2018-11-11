@@ -1,5 +1,6 @@
 import { HtmlHelpers } from './helpers/html';
-import { NotificationGroupService, INotificationGroupOptions } from './notificationgroup.service';
+import { NotificationGroupService } from './notificationgroup.service';
+import { INotificationGroupOptions, IFocusNotificationOptions, OnChannelNotificationEventArgs} from './models'
 import { HttpHelpers } from './helpers/http';
 import { NotificationSettings } from './notification.settings.class';
 import { NotificationHtml } from './html-elements/notificationhtml';
@@ -36,25 +37,35 @@ export class NotificationModule {
     }
 
 
+    private _defaultNotificationGroupKey: string;
+    get defaultNotificationGroupKey() {
+        return this._defaultNotificationGroupKey;
+    }
+
     get currentSessionId() {
         return HtmlHelpers.getCookie(this.options.currentSessionCookieName);
     }
 
     set currentSessionId(value) {
-        HtmlHelpers.setCookie(this.options.currentSessionCookieName, value, this.options.currentSessionCookieExpiresInMinutes);
+        debugger;
+        if (value == null) {
+            HtmlHelpers.deleteCookie(this.options.currentSessionCookieName);
+        }
+        else {
+            HtmlHelpers.setCookie(this.options.currentSessionCookieName, value, this.options.currentSessionCookieExpiresInMinutes);
+        }
     }
-
 
     // Events
     onInitialized: Subject<boolean>;
 
-    constructor(accountKey: string, private defaultChatGroupKey?: string, options?: IFocusNotificationOptions) {
+    constructor(accountKey: string, defaultNotificationGroupKey?: string, options?: IFocusNotificationOptions) {
         this._accountKey = accountKey;
         if (!accountKey) {
             throw 'accountKey is required';
         }
 
-        this.defaultChatGroupKey = defaultChatGroupKey || 'default';
+        this._defaultNotificationGroupKey = defaultNotificationGroupKey || 'default';
 
         this.notificationGroups = [];
         // this.wrapper = element;
@@ -107,7 +118,7 @@ export class NotificationModule {
         console.log('Firebase script was loaded!!');
         
         this.initializeApp().subscribe(res => {
-            this.initializeChatGroups();
+            this.initializeNotificationGroups();
             this.onInitialized.next(true);
             this.onInitialized.complete();
         });
@@ -146,13 +157,13 @@ export class NotificationModule {
         //};
     }
 
-    initializeChatGroups() {
+    initializeNotificationGroups() {
         if (this.options.defaultActorType == 'subscriber') {
             let options: INotificationGroupOptions = {
                 actorType: 'subscriber'
             };
 
-            this.bindToNotificationGroup(this.defaultChatGroupKey, options);
+            this.bindToNotificationGroup(this.defaultNotificationGroupKey, options);
         }
         else {
             // if attendant get chatgroups hosted by the current account
@@ -161,18 +172,33 @@ export class NotificationModule {
 
     bindToNotificationGroup(accountKey: string, options?: INotificationGroupOptions) {
         // debugger;
-        let group = new NotificationGroupService(this, this.defaultChatGroupKey, this.database, options);
+        let group = new NotificationGroupService(this, this.defaultNotificationGroupKey, this.database, options);
         this.notificationGroups.push(group);
+
+        group.onChannelNotificationReceived.subscribe((args: OnChannelNotificationEventArgs) => {
+
+        });
+
+        group.onChannelNotificationSent.subscribe((args: OnChannelNotificationEventArgs) => {
+            this.channelNotificationSent(args);
+        });
+    }
+
+    channelNotificationSent(args: OnChannelNotificationEventArgs) {
+        this.updateCurrentExpirationIdExpirationDate();
+    }
+
+    updateCurrentExpirationIdExpirationDate() {
+        // cache the current value
+        let currentSessionId = this.currentSessionId;
+
+        // delete the cokkie
+        this.currentSessionId = null;
+
+        // recreate cookie with new value
+        this.currentSessionId = currentSessionId;
     }
 }
 
 
 
-
-export interface IFocusNotificationOptions {
-    defaultActorType: ActorType,
-    currentUserCookieName?: string;
-    currentSessionCookieName?: string;
-    currentSessionCookieExpiresInMinutes?: number;
-    userId?: string;
-}

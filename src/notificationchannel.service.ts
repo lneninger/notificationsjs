@@ -5,15 +5,25 @@ declare var messaging: any;
 import { ChatHtml } from './html-elements/chathtml';
 import { HtmlHelpers } from './helpers/html';
 import { NotificationGroupService } from './notificationgroup.service';
-import { Observable, of, pipe } from 'rxjs';
+import { Observable, of, pipe, Subject } from 'rxjs';
 import { mergeMap, map } from 'rxjs/operators';
-import { INotificationGroupClient, NotificationChannel, INotificationChannel, IChannelNotification, ChannelNotification } from './models';
+import { INotificationGroupClient, NotificationChannel, INotificationChannel, IChannelNotification, ChannelNotification, OnChannelNotificationEventArgs } from './models';
 
 
 
 
 
 export class NotificationChannelService {
+
+    private _onChannelNotificationReceived: Subject<OnChannelNotificationEventArgs> = new Subject<OnChannelNotificationEventArgs>();
+    get onChannelNotificationReceived() {
+        return this._onChannelNotificationReceived;
+    }
+
+    private _onChannelNotificationSent: Subject<OnChannelNotificationEventArgs> = new Subject<OnChannelNotificationEventArgs>();
+    get onChannelNotificationSent() {
+        return this._onChannelNotificationSent;
+    }
 
     static chatAttributeName = 'chat';
 
@@ -35,15 +45,9 @@ export class NotificationChannelService {
         return `${NotificationChannelService.notificationChannelTableName}/${this.notificationChannelId}`;
     }
 
-    protected notificationChannelDetailsRef: any;
-    get notificationChannelDetailsRefPath() {
-        return `${this.notificationChannelRefPath}/details`;
-    }
-
-
     protected notificationChannelNotificationsRef: any;
     get notificationChannelNotificationsRefPath() {
-        return `${this.notificationChannelRefPath}/notifications`;
+        return `${NotificationChannelService.notificationChannelTableName}-notifications/${this.notificationChannelId}`;
     }
 
 
@@ -62,40 +66,28 @@ export class NotificationChannelService {
     }
 
 
-    static create(client: INotificationGroupClient, notificationGroup: NotificationGroupService): Observable<boolean> {
+    static create(client: INotificationGroupClient, notificationGroup: NotificationGroupService): Observable<NotificationChannelService> {
         let resultObj = new NotificationChannelService(notificationGroup, client);
 
-        return resultObj.createFirebaseChannel();
+        return resultObj.createFirebaseChannel()
+            .pipe(map(o => resultObj));
     }
 
     protected createFirebaseChannel(): Observable<boolean> {
+        //debugger;
         let observable = of(this.client)
-            .pipe(mergeMap<INotificationGroupClient, boolean>(client => {
+            .pipe<boolean>(mergeMap(client => {
                 //debugger
-                return Observable.create(observer => {
-                    this.referenceNotificationChannelForClient(client).subscribe(ref => {
-                        this.initializeNotificationWatch();
-                        return of(true);
-                        //let result = { connected: client, notificationChannelRef: ref };
-                        //observer.next(result);
-                        //observer.complete();
-                    });
-                });
+                return this.referenceNotificationChannelForClient(client);
+            }))
+
+            .pipe<boolean>(mergeMap(status => {
+                //debugger;
+                this.initializeNotificationWatch();
+                return of(true);
             }));
-            //.pipe(mergeMap<>(connectedAdRef => {
-            //    return of(true);
-            //    //debugger;
-            //    //let client = (<any>connectedAdRef).client;
-            //    //let channelRef = (<any>connectedAdRef).notificationChannelRef;
-
-            //    //return Observable.create(observer => {
-            //    //    //debugger;
-            //    //    //client.channelRef = channelRef;
-            //    //    //connected.channelRef.$connected = connected;
 
 
-            //    //});
-            //}));
 
         return observable;
     }
@@ -108,25 +100,30 @@ export class NotificationChannelService {
             //let notificationChannelKey: string;
             this.database.ref(`${NotificationChannelService.notificationChannelTableName}`).orderByChild('notificationChannelIdentifier').equalTo(notificationChannelIdentifier).once('value', snapshot => {
                 let notificationChannel = snapshot.val();
-                if (notificationChannel) {
-                    this.notificationChannelId = snapshot.key
+                let keys = Object.getOwnPropertyNames(notificationChannel);
+
+                if (keys.length > 0) {
+                    this.channelDetails = notificationChannel[keys[0]];
+                    this.notificationChannelId = keys[0];
+                    this.notificationChannelRef = this.database.ref(this.notificationChannelRefPath);
                 }
                 else {
                     this.notificationChannelId = this.database.ref(NotificationChannelService.notificationChannelTableName).push().key;
                     let notificationChannel = NotificationChannel.createNew(notificationChannelIdentifier);
-                    this.database.ref(this.notificationChannelDetailsRefPath).set(notificationChannel);
+                    this.notificationChannelRef = this.database.ref(this.notificationChannelRefPath);
+                    this.notificationChannelRef.set(notificationChannel);
                 }
 
-                this.notificationChannelDetailsRef = this.database.ref(`${this.notificationChannelDetailsRefPath}`);
+                //this.notificationChannelDetailsRef = this.database.ref(`${this.notificationChannelDetailsRefPath}`);
                 this.notificationChannelRef.on('value', snapshot => {
-                    debugger;
+                    //debugger;
                     this.channelDetails = <INotificationChannel>snapshot.val();
                 });
+                this.notificationChannelNotificationsRef = this.database.ref(this.notificationChannelNotificationsRefPath);
+
                 observer.next(true);
                 observer.complete();
             });
-
-           
         });
 
         return pipeObservable;
@@ -134,133 +131,46 @@ export class NotificationChannelService {
 
     initializeNotificationWatch() {
         this.database.ref(`${this.notificationChannelNotificationsRefPath}`).once('value', snapshot => {
-            this.channelNotifications.push(snapshot.val().map(res => {
-                let result = [];
-                let notificationKeys = Object.getOwnPropertyNames(res);
-                for (let notificationKey of notificationKeys) {
-                    result.push(new Notification(notificationKey, res[notificationKey]))
-                }
+            let notificationsObj = snapshot.val();
+            if (notificationsObj == null) return;
+            //debugger;
+            let keys = Object.getOwnPropertyNames(notificationsObj);
+            let result = [];
+            for (let key of keys) {
+                let notification = <IChannelNotification>notificationsObj[key];
+                result.push(notification);
 
-            }));
+            }
+            //this.channelNotifications.push(notificationsObj.map(res => {
+            //    let notificationKeys = Object.getOwnPropertyNames(res);
+            //    for (let notificationKey of notificationKeys) {
+            //    }
+
+            //}));
         });
 
         this.database.ref(`${this.notificationChannelNotificationsRefPath}`).on('child_added', snapshot => {
-            this.channelNotifications.push(snapshot.val());
+            //debugger;
+            let notification = <IChannelNotification>snapshot.val();
+            this.channelNotifications.push(notification);
+
+            let eventArgs = <OnChannelNotificationEventArgs>{ channelNotification: notification, notificationChannelService: this };
+            this.onChannelNotificationReceived.next(eventArgs);
         });
     }
 
-    //createWidgetShell(instanceData: any) {
-    //    // Configure Wrapper
-    //    let result = new ChatHtml();
-
-    //    // Configure instance
-    //    let instance = document.createElement("notification-chat");
-    //    instance.className = '';
-    //    instance.setAttribute(NotificationService.chatAttributeName, this.chatId);
-    //    HtmlHelpers.addEvent(instance, 'click', this.headerClick.bind(this));
-    //    result.header = instance;
-    //    result.wrapper.appendChild(instance);
-
-    //    // Header
-    //    let header = document.createElement("notification-header");
-    //    header.className = '';
-    //    HtmlHelpers.addEvent(header, 'click', this.headerClick.bind(this));
-    //    result.header = header;
-    //    result.wrapper.appendChild(header);
-
-    //    //Header Title
-    //    let headerTitle = document.createElement("title");
-    //    headerTitle.className = '';
-    //    headerTitle.innerText = 'Send Message';
-    //    result.headerTitle = headerTitle;
-    //    header.appendChild(headerTitle);
-
-
-    //    // Body
-    //    let body = document.createElement("notification-body");
-    //    body.className = '';
-    //    result.body = body;
-    //    result.wrapper.appendChild(body);
-
-    //    // Body Historic Area
-    //    let historicArea = document.createElement('historic-area');
-    //    historicArea.className = '';
-    //    result.bodyHistoricArea = historicArea;
-    //    result.body.appendChild(historicArea);
-    //    let historicAreaContent = document.createElement('span');
-    //    historicAreaContent.className = '';
-    //    //historicAreaContent.innerText = 'Historic Area';
-    //    result.bodyHistoricArea.appendChild(historicAreaContent);
-
-    //    // Body Input Area
-    //    let inputArea = document.createElement('input-area');
-    //    inputArea.className = '';
-    //    result.bodyInputArea = inputArea;
-    //    result.body.appendChild(inputArea);
-    //    let inputElement = document.createElement('input-element');
-    //    inputElement.setAttribute('contenteditable', 'true');
-    //    result.bodyInputElement = inputElement;
-    //    result.bodyInputArea.appendChild(inputElement);
-
-    //    let inputSend = document.createElement('input-send');
-    //    result.bodyInputSend = inputSend;
-    //    result.bodyInputArea.appendChild(inputSend);
-    //    HtmlHelpers.addEvent(inputElement, 'keydown', this.inputKeyDown.bind(this));
-    //}
-
-    //createChat() {
-    //    console.log('Firebase: ', firebase);
-    //    this.chatId = this.chatTableRef.push().key;
-    //    console.log(`chat url: ${this.chatRefPath}`);
-
-    //    this.chatTableRef.child(this.chatId).set({
-    //        date: this.database.ServerValue.TIMESTAMP
-    //    });
-
-
-
-    //    // pending chat
-    //    this.database
-    //        .ref(NotificationService.pendingChatTableName).push({
-    //            chatId: this.chatId,
-    //            chatGroupKey: this.notificationGroupService.notificationGroupKey,
-    //            date: this.database.ServerValue.TIMESTAMP
-    //        });
-
-    //    //this.chatRef = this.database
-    //    //    .ref().child(this.chatRefPath);
-
-    //    console.log('Chat reference', this.chatTableRef);
-    //    //debugger;
-    //    let childAddedEvent = this.chatTableRef.on('child_added', (snapshot, prevChildName) => {
-    //        console.log('remote message elements', snapshot, 0);
-    //        this.processRemoteMessage(snapshot);
-    //    });
-
-    //    console.log(`childAddedEvent: `, childAddedEvent);
-
-    //}
-
-    //headerClick($event) {
-
-    //}
-
-    //inputKeyDown($event) {
-    //    //debugger;
-    //    console.log('keydown: ', $event);
-    //    if ($event.keyCode == 13) {
-    //        let message = $event.target.innerText;
-    //        console.log('Enter message -> ', message);
-    //        this.sendMessage(message);
-    //    }
-    //}
 
     sendMessage(message: string) {
         //if (!this.chatId) {
         //    this.createChat();
         //}
-        let channelNotification = new ChannelNotification(this.client.clientId, message);
-        let messageId = this.notificationChannelNotificationsRef.push(channelNotification);
+        let notification = new ChannelNotification(this.notificationGroupService.notification.currentSessionId, this.client.sessionId, message);
+        let messageId = this.notificationChannelNotificationsRef.push().key;
+        notification.key = messageId;
+        this.database.ref(`${this.notificationChannelNotificationsRefPath}/${messageId}`).set(notification);
+
+        let eventArgs = <OnChannelNotificationEventArgs>{ channelNotification: notification, notificationChannelService: this };
+        this.onChannelNotificationSent.next(eventArgs);
     }
 }
 

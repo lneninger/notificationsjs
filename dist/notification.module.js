@@ -14,8 +14,7 @@ var http_1 = require("./helpers/http");
 var notification_settings_class_1 = require("./notification.settings.class");
 var rxjs_1 = require("rxjs");
 var NotificationModule = /** @class */ (function () {
-    function NotificationModule(accountKey, defaultChatGroupKey, options) {
-        this.defaultChatGroupKey = defaultChatGroupKey;
+    function NotificationModule(accountKey, defaultNotificationGroupKey, options) {
         // Setup scripts
         this.setupScriptsDone = false;
         this.firebaseScriptsLoaded = 0;
@@ -23,7 +22,7 @@ var NotificationModule = /** @class */ (function () {
         if (!accountKey) {
             throw 'accountKey is required';
         }
-        this.defaultChatGroupKey = defaultChatGroupKey || 'default';
+        this._defaultNotificationGroupKey = defaultNotificationGroupKey || 'default';
         this.notificationGroups = [];
         // this.wrapper = element;
         var defaultOptions = {
@@ -44,12 +43,25 @@ var NotificationModule = /** @class */ (function () {
         enumerable: true,
         configurable: true
     });
+    Object.defineProperty(NotificationModule.prototype, "defaultNotificationGroupKey", {
+        get: function () {
+            return this._defaultNotificationGroupKey;
+        },
+        enumerable: true,
+        configurable: true
+    });
     Object.defineProperty(NotificationModule.prototype, "currentSessionId", {
         get: function () {
             return html_1.HtmlHelpers.getCookie(this.options.currentSessionCookieName);
         },
         set: function (value) {
-            html_1.HtmlHelpers.setCookie(this.options.currentSessionCookieName, value, this.options.currentSessionCookieExpiresInMinutes);
+            debugger;
+            if (value == null) {
+                html_1.HtmlHelpers.deleteCookie(this.options.currentSessionCookieName);
+            }
+            else {
+                html_1.HtmlHelpers.setCookie(this.options.currentSessionCookieName, value, this.options.currentSessionCookieExpiresInMinutes);
+            }
         },
         enumerable: true,
         configurable: true
@@ -77,7 +89,7 @@ var NotificationModule = /** @class */ (function () {
         var _this = this;
         console.log('Firebase script was loaded!!');
         this.initializeApp().subscribe(function (res) {
-            _this.initializeChatGroups();
+            _this.initializeNotificationGroups();
             _this.onInitialized.next(true);
             _this.onInitialized.complete();
         });
@@ -109,21 +121,38 @@ var NotificationModule = /** @class */ (function () {
         //    messagingSenderId: "95627638743"
         //};
     };
-    NotificationModule.prototype.initializeChatGroups = function () {
+    NotificationModule.prototype.initializeNotificationGroups = function () {
         if (this.options.defaultActorType == 'subscriber') {
             var options = {
                 actorType: 'subscriber'
             };
-            this.bindToNotificationGroup(this.defaultChatGroupKey, options);
+            this.bindToNotificationGroup(this.defaultNotificationGroupKey, options);
         }
         else {
             // if attendant get chatgroups hosted by the current account
         }
     };
     NotificationModule.prototype.bindToNotificationGroup = function (accountKey, options) {
+        var _this = this;
         // debugger;
-        var group = new notificationgroup_service_1.NotificationGroupService(this, this.defaultChatGroupKey, this.database, options);
+        var group = new notificationgroup_service_1.NotificationGroupService(this, this.defaultNotificationGroupKey, this.database, options);
         this.notificationGroups.push(group);
+        group.onChannelNotificationReceived.subscribe(function (args) {
+        });
+        group.onChannelNotificationSent.subscribe(function (args) {
+            _this.channelNotificationSent(args);
+        });
+    };
+    NotificationModule.prototype.channelNotificationSent = function (args) {
+        this.updateCurrentExpirationIdExpirationDate();
+    };
+    NotificationModule.prototype.updateCurrentExpirationIdExpirationDate = function () {
+        // cache the current value
+        var currentSessionId = this.currentSessionId;
+        // delete the cokkie
+        this.currentSessionId = null;
+        // recreate cookie with new value
+        this.currentSessionId = currentSessionId;
     };
     return NotificationModule;
 }());

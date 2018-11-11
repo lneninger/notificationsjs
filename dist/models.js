@@ -14,12 +14,14 @@ var NotificationChannel = /** @class */ (function () {
     return NotificationChannel;
 }());
 exports.NotificationChannel = NotificationChannel;
-var Notification = /** @class */ (function () {
-    function Notification(sender, message) {
+var ChannelNotification = /** @class */ (function () {
+    function ChannelNotification(sender, receiver, message) {
         this.sender = sender;
+        this.receiver = receiver;
         this.message = message;
+        this.createdAt = firebase.database.ServerValue.TIMESTAMP;
     }
-    return Notification;
+    return ChannelNotification;
 }());
-exports.Notification = Notification;
+exports.ChannelNotification = ChannelNotification;
 //# sourceMappingURL=models.js.map

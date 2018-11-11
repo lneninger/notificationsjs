@@ -1,7 +1,17 @@
 import { NotificationGroupService } from "./notificationgroup.service";
+import { NotificationChannelService } from ".";
 
 
 declare var firebase: any;
+
+
+export interface IFocusNotificationOptions {
+    defaultActorType: ActorType,
+    currentUserCookieName?: string;
+    currentSessionCookieName?: string;
+    currentSessionCookieExpiresInMinutes?: number;
+    userId?: string;
+}
 
 export interface INotificationGroupOptions {
     actorType: ActorType;
@@ -16,7 +26,7 @@ export interface INotificationGroupClient {
     sessionId: string;
     channelRef?: any;
     channel: INotificationChannel;
-    notifications: INotification[];
+    notifications: IChannelNotification[];
 }
 
 export interface INotificationChannel {
@@ -43,15 +53,29 @@ export class NotificationChannel implements INotificationChannel {
 
 export interface IChannelNotification {
     sender: string;
+    receiver: string;
     message: string;
+    createdAt?: any;
 }
 
-export class ChannelNotification implements IChannelNotification{
+export class ChannelNotification implements IChannelNotification {
+    key?: string;
     sender: string;
+    receiver: string;
     message: string;
+    createdAt?: any;
 
-    constructor(sender: string, message: string) {
+    constructor(sender: string, receiver: string, message: string) {
         this.sender = sender;
+        this.receiver = receiver;
         this.message = message;
+        this.createdAt = firebase.database.ServerValue.TIMESTAMP
     }
+}
+
+
+export interface OnChannelNotificationEventArgs {
+    notificationChannelService: NotificationChannelService;
+    channelNotification: ChannelNotification;
+
 }

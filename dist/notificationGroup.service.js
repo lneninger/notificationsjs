@@ -10,6 +10,7 @@ var __assign = (this && this.__assign) || Object.assign || function(t) {
 Object.defineProperty(exports, "__esModule", { value: true });
 var notificationchannel_service_1 = require("./notificationchannel.service");
 var rxjs_1 = require("rxjs");
+var operators_1 = require("rxjs/operators");
 var NotificationGroupService = /** @class */ (function () {
     function NotificationGroupService(notification, defaultNotificationGroupKey, database, options) {
         var _this = this;
@@ -17,6 +18,8 @@ var NotificationGroupService = /** @class */ (function () {
         this.database = database;
         // Events
         this.onClientConnected = new rxjs_1.Subject();
+        this._onChannelNotificationReceived = new rxjs_1.Subject();
+        this._onChannelNotificationSent = new rxjs_1.Subject();
         this._notificationGroupKey = defaultNotificationGroupKey;
         this.notificationChannels = [];
         this._connectedClients = [];
@@ -25,7 +28,7 @@ var NotificationGroupService = /** @class */ (function () {
         };
         this.options = __assign({}, defaultOptions, options);
         console.log("Setting onClientConnected");
-        debugger;
+        //debugger;
         this.onClientConnected.subscribe(function (res) {
             //debugger;
             _this.connectedClients.push(res);
@@ -61,18 +64,32 @@ var NotificationGroupService = /** @class */ (function () {
         enumerable: true,
         configurable: true
     });
+    Object.defineProperty(NotificationGroupService.prototype, "onChannelNotificationReceived", {
+        get: function () {
+            return this._onChannelNotificationReceived;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(NotificationGroupService.prototype, "onChannelNotificationSent", {
+        get: function () {
+            return this._onChannelNotificationSent;
+        },
+        enumerable: true,
+        configurable: true
+    });
     NotificationGroupService.prototype.connectToGroup = function (notificationGroupKey) {
         var internalNotificationGroupKey = notificationGroupKey || this.notificationGroupKey;
         var connectedRef;
-        if (!this.currentSessionId) {
+        if (!this.notification.currentSessionId) {
             connectedRef = this.database.ref("connected/" + this.notificationGroupKey).push();
-            this.currentSessionId = connectedRef.key;
+            this.notification.currentSessionId = connectedRef.key;
         }
         else {
-            connectedRef = this.database.ref("connected/" + this.notificationGroupKey + "/" + this.currentSessionId);
+            connectedRef = this.database.ref("connected/" + this.notificationGroupKey + "/" + this.notification.currentSessionId);
         }
         connectedRef.onDisconnect().remove();
-        var connectedData = { clientId: this.notification.options.userId, sessionId: connectedRef.key };
+        var connectedData = { clientId: this.notification.options.userId, sessionId: this.notification.currentSessionId };
         connectedRef.set(connectedData);
         this.initializeWatchConnected();
     };
@@ -94,6 +111,7 @@ var NotificationGroupService = /** @class */ (function () {
         return this.notificationChannels.filter(function (o) { return o.client.sessionId == client.sessionId; });
     };
     NotificationGroupService.prototype.onSelectNotificationGroupClient = function (client) {
+        var _this = this;
         var observable;
         //debugger;
         var channel = this.getNotificationChannelByClient(client);
@@ -101,11 +119,28 @@ var NotificationGroupService = /** @class */ (function () {
             observable = rxjs_1.of(channel[0]);
         }
         else {
-            var channel_1 = notificationchannel_service_1.NotificationChannelService.create(client, this);
+            observable = notificationchannel_service_1.NotificationChannelService.create(client, this).pipe(operators_1.mergeMap(function (channelService) {
+                _this.notificationChannels.push(channelService);
+                channelService.onChannelNotificationReceived.subscribe(function (args) {
+                    _this.channelNotificationReceived(args);
+                });
+                channelService.onChannelNotificationSent.subscribe(function (args) {
+                    _this.channelNotificationSent(args);
+                });
+                return rxjs_1.of(channelService);
+            }));
             //debugger;
         }
         return observable;
     };
+    NotificationGroupService.prototype.channelNotificationReceived = function (args) {
+        this.onChannelNotificationReceived.next(args);
+    };
+    NotificationGroupService.prototype.channelNotificationSent = function (args) {
+        this.onChannelNotificationSent.next(args);
+    };
+    // Properties
+    //currentSessionId: string;
     NotificationGroupService.notificationGroupTableName = 'notification-groups';
     return NotificationGroupService;
 }());

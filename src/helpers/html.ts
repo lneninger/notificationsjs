@@ -99,7 +99,7 @@ export class HtmlHelpers {
         const value = val;
 
         // Set it expire in 7 days
-        date.setTime(date.getTime() + (/*7 * 24 * */(expiresInMinutes / 60) * 60 * 1000));
+        date.setTime(date.getTime() + (/*7 * 24 * */(expiresInMinutes/* / 60*/) * 60 * 1000));
 
         // Set it
         document.cookie = name + "=" + value + "; expires=" + date.toUTCString() + "; path=/";

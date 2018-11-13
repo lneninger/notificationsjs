@@ -123,6 +123,8 @@ var NotificationModule = /** @class */ (function () {
                 _this.connectedKey = _this.database.ref("" + NotificationModule.connectedTableName).push().key;
                 var connected = { clientId: _this.options.clientId, sessionId: _this.connectedKey };
                 _this.database.ref(NotificationModule.connectedTableName + "/" + _this.connectedKey).set(connected);
+                _this.connectedRef = _this.database.ref(NotificationModule.connectedTableName + "/" + _this.connectedKey);
+                _this.connectedRef.onDisconnect().remove();
                 _this.setupScriptsDone = true;
                 observer.next();
                 observer.complete();

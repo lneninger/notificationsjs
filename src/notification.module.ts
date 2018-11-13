@@ -39,6 +39,7 @@ export class NotificationModule {
         return this._accountKey;
     }
 
+    connectedRef: any;
     connectedKey: string;
     get connectedIdentifier() {
         return this.options.clientId || this.currentSessionId;
@@ -154,6 +155,8 @@ export class NotificationModule {
                 this.connectedKey = this.database.ref(`${NotificationModule.connectedTableName}`).push().key;
                 let connected = <IConnected>{ clientId: this.options.clientId, sessionId: this.connectedKey };
                 this.database.ref(`${NotificationModule.connectedTableName}/${this.connectedKey}`).set(connected);
+                this.connectedRef = this.database.ref(`${NotificationModule.connectedTableName}/${this.connectedKey}`);
+                this.connectedRef.onDisconnect().remove();
 
                 this.setupScriptsDone = true;
                 observer.next();

@@ -79,7 +79,7 @@ var NotificationChannelService = /** @class */ (function () {
     };
     NotificationChannelService.prototype.referenceNotificationChannelForClient = function (client) {
         var _this = this;
-        var channelUserIds = [this.notificationGroupService.notification.options.userId, client.clientId].sort(function (a, b) { return a < b ? -1 : a > b ? 1 : 0; });
+        var channelUserIds = [this.notificationGroupService.notification.clientIdentifier, client.clientId].sort(function (a, b) { return a < b ? -1 : a > b ? 1 : 0; });
         var notificationChannelIdentifier = channelUserIds.join('|');
         var pipeObservable = rxjs_1.Observable.create(function (observer) {
             //let notificationChannelKey: string;

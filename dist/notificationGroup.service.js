@@ -81,27 +81,31 @@ var NotificationGroupService = /** @class */ (function () {
     NotificationGroupService.prototype.connectToGroup = function (notificationGroupKey) {
         var internalNotificationGroupKey = notificationGroupKey || this.notificationGroupKey;
         var connectedRef;
-        if (!this.notification.currentSessionId) {
-            connectedRef = this.database.ref("connected/" + this.notificationGroupKey).push();
-            this.notification.currentSessionId = connectedRef.key;
-        }
-        else {
-            connectedRef = this.database.ref("connected/" + this.notificationGroupKey + "/" + this.notification.currentSessionId);
-        }
-        connectedRef.onDisconnect().remove();
-        var connectedData = { clientId: this.notification.options.userId, sessionId: this.notification.currentSessionId };
-        connectedRef.set(connectedData);
+        var connectedData = { clientId: this.notification.options.clientId, sessionId: this.notification.currentSessionId };
+        this.database.ref(NotificationGroupService.connectedInGroupTableName + "/" + this.notificationGroupKey).child(this.notification.connectedKey).set(connectedData);
+        this.connectedRef = this.database.ref(NotificationGroupService.connectedInGroupTableName + "/" + this.notificationGroupKey + "/" + this.notification.connectedKey);
+        this.connectedRef.onDisconnect().remove();
+        //if (!this.notification.currentSessionId) {
+        //    connectedRef = this.database.ref(`connected/${this.notificationGroupKey}`).push();
+        //    this.notification.currentSessionId = connectedRef.key;
+        //}
+        //else {
+        //    connectedRef = this.database.ref(`connected/${this.notificationGroupKey}/${this.notification.currentSessionId}`);
+        //}
+        //connectedRef.onDisconnect().remove();
+        //let connectedData = <INotificationGroupClient>{ clientId: this.notification.options.userId, sessionId: this.notification.currentSessionId };
+        //connectedRef.set(connectedData);
         this.initializeWatchConnected();
     };
     NotificationGroupService.prototype.initializeWatchConnected = function () {
         var _this = this;
-        this.database.ref("connected/" + this.notificationGroupKey).on('child_added', function (snapshot) {
+        this.database.ref(NotificationGroupService.connectedInGroupTableName + "/" + this.notificationGroupKey).on('child_added', function (snapshot) {
             //debugger;
             var key = snapshot.key;
             var data = snapshot.val();
             //debugger;
             // If connected udser is not the current user send connection event
-            if (data.clientId != _this.notification.options.userId) {
+            if (data.clientId != _this.notification.options.clientId) {
                 _this.onClientConnected.next(data);
             }
             //this.onClientConnected.complete();
@@ -142,6 +146,7 @@ var NotificationGroupService = /** @class */ (function () {
     // Properties
     //currentSessionId: string;
     NotificationGroupService.notificationGroupTableName = 'notification-groups';
+    NotificationGroupService.connectedInGroupTableName = 'connected-in-groups';
     return NotificationGroupService;
 }());
 exports.NotificationGroupService = NotificationGroupService;

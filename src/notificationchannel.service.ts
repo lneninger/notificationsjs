@@ -93,7 +93,7 @@ export class NotificationChannelService {
     }
 
     referenceNotificationChannelForClient(client: INotificationGroupClient): Observable<boolean> {
-        let channelUserIds = [this.notificationGroupService.notification.options.userId, client.clientId].sort((a, b) => a < b ? -1 : a > b ? 1 : 0);
+        let channelUserIds = [this.notificationGroupService.notification.clientIdentifier, client.clientId].sort((a, b) => a < b ? -1 : a > b ? 1 : 0);
         let notificationChannelIdentifier = channelUserIds.join('|');
 
         let pipeObservable = Observable.create(observer => {

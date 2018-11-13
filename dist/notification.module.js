@@ -43,6 +43,13 @@ var NotificationModule = /** @class */ (function () {
         enumerable: true,
         configurable: true
     });
+    Object.defineProperty(NotificationModule.prototype, "connectedIdentifier", {
+        get: function () {
+            return this.options.clientId || this.currentSessionId;
+        },
+        enumerable: true,
+        configurable: true
+    });
     Object.defineProperty(NotificationModule.prototype, "defaultNotificationGroupKey", {
         get: function () {
             return this._defaultNotificationGroupKey;
@@ -62,6 +69,14 @@ var NotificationModule = /** @class */ (function () {
             else {
                 html_1.HtmlHelpers.setCookie(this.options.currentSessionCookieName, value, this.options.currentSessionCookieExpiresInMinutes);
             }
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(NotificationModule.prototype, "clientIdentifier", {
+        // returns clientId otherwise the currentSessionId
+        get: function () {
+            return this.options.clientId || this.currentSessionId;
         },
         enumerable: true,
         configurable: true
@@ -104,22 +119,16 @@ var NotificationModule = /** @class */ (function () {
                 console.log('Initializing Firebase Application: ', _this.firebaseConfig);
                 _this.firebase = firebase.initializeApp(_this.firebaseConfig, notification_settings_class_1.NotificationSettings.firebaseLocalApplicationName);
                 _this.database = _this.firebase.database();
-                //console.log(`Firebase: ${JSON.stringify(firebase)}`);
                 console.log('Application Name: ', _this.firebase.name);
+                _this.connectedKey = _this.database.ref("" + NotificationModule.connectedTableName).push().key;
+                var connected = { clientId: _this.options.clientId, sessionId: _this.connectedKey };
+                _this.database.ref(NotificationModule.connectedTableName + "/" + _this.connectedKey).set(connected);
                 _this.setupScriptsDone = true;
                 observer.next();
                 observer.complete();
             });
         });
         return initAppObservable;
-        //this.firebaseConfig = {
-        //    apiKey: "AIzaSyCgVdtPw0go7eKPKadhBsbCH85GY6l91tE",
-        //    authDomain: "focus-notifications.firebaseapp.com",
-        //    databaseURL: NotificationSettings.firebaseDatabaseUrl,
-        //    projectId: "focus-notifications",
-        //    storageBucket: "focus-notifications.appspot.com",
-        //    messagingSenderId: "95627638743"
-        //};
     };
     NotificationModule.prototype.initializeNotificationGroups = function () {
         if (this.options.defaultActorType == 'subscriber') {
@@ -154,6 +163,7 @@ var NotificationModule = /** @class */ (function () {
         // recreate cookie with new value
         this.currentSessionId = currentSessionId;
     };
+    NotificationModule.connectedTableName = 'connected';
     return NotificationModule;
 }());
 exports.NotificationModule = NotificationModule;

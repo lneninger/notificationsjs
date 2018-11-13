@@ -10,16 +10,17 @@ export interface IFocusNotificationOptions {
     currentUserCookieName?: string;
     currentSessionCookieName?: string;
     currentSessionCookieExpiresInMinutes?: number;
-    userId?: string;
+    clientId?: string;
 }
 
 export interface INotificationGroupOptions {
     actorType: ActorType;
 }
 
-export interface INotificationGroupDetails {
+export interface IConnected {
+    clientId: string;
+    sessionId: string;
 }
-
 
 export interface INotificationGroupClient {
     clientId: string;
@@ -27,6 +28,19 @@ export interface INotificationGroupClient {
     channelRef?: any;
     channel: INotificationChannel;
     notifications: IChannelNotification[];
+}
+
+export class NotificationGroupClient implements INotificationGroupClient {
+    clientId: string;
+    sessionId: string;
+    channelRef?: any;
+    channel: INotificationChannel;
+    notifications: IChannelNotification[];
+
+    // returns clientId otherwise the currentSessionId
+    get clientIdentifier() {
+        return this.clientId || this.sessionId;
+    }
 }
 
 export interface INotificationChannel {

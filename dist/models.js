@@ -1,5 +1,19 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+var NotificationGroupClient = /** @class */ (function () {
+    function NotificationGroupClient() {
+    }
+    Object.defineProperty(NotificationGroupClient.prototype, "clientIdentifier", {
+        // returns clientId otherwise the currentSessionId
+        get: function () {
+            return this.clientId || this.sessionId;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    return NotificationGroupClient;
+}());
+exports.NotificationGroupClient = NotificationGroupClient;
 var NotificationChannel = /** @class */ (function () {
     function NotificationChannel() {
     }

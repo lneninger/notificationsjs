@@ -1,6 +1,6 @@
 import { HtmlHelpers } from './helpers/html';
 import { NotificationGroupService } from './notificationgroup.service';
-import { INotificationGroupOptions, IFocusNotificationOptions, OnChannelNotificationEventArgs} from './models'
+import { INotificationGroupOptions, IFocusNotificationOptions, OnChannelNotificationEventArgs, INotificationGroupClient, IConnected} from './models'
 import { HttpHelpers } from './helpers/http';
 import { NotificationSettings } from './notification.settings.class';
 import { NotificationHtml } from './html-elements/notificationhtml';
@@ -12,6 +12,9 @@ declare var messaging: any;
 
 
 export class NotificationModule {
+
+    static connectedTableName = 'connected';
+
 
     // Setup scripts
     setupScriptsDone: boolean = false;
@@ -36,6 +39,10 @@ export class NotificationModule {
         return this._accountKey;
     }
 
+    connectedKey: string;
+    get connectedIdentifier() {
+        return this.options.clientId || this.currentSessionId;
+    }
 
     private _defaultNotificationGroupKey: string;
     get defaultNotificationGroupKey() {
@@ -54,6 +61,11 @@ export class NotificationModule {
         else {
             HtmlHelpers.setCookie(this.options.currentSessionCookieName, value, this.options.currentSessionCookieExpiresInMinutes);
         }
+    }
+
+    // returns clientId otherwise the currentSessionId
+    get clientIdentifier() {
+        return this.options.clientId || this.currentSessionId;
     }
 
     // Events
@@ -136,8 +148,12 @@ export class NotificationModule {
                 this.firebase = firebase.initializeApp(this.firebaseConfig, NotificationSettings.firebaseLocalApplicationName);
 
                 this.database = this.firebase.database();
-                //console.log(`Firebase: ${JSON.stringify(firebase)}`);
                 console.log('Application Name: ', this.firebase.name);
+
+
+                this.connectedKey = this.database.ref(`${NotificationModule.connectedTableName}`).push().key;
+                let connected = <IConnected>{ clientId: this.options.clientId, sessionId: this.connectedKey };
+                this.database.ref(`${NotificationModule.connectedTableName}/${this.connectedKey}`).set(connected);
 
                 this.setupScriptsDone = true;
                 observer.next();
@@ -146,15 +162,6 @@ export class NotificationModule {
         });
         
         return initAppObservable;
-
-        //this.firebaseConfig = {
-        //    apiKey: "AIzaSyCgVdtPw0go7eKPKadhBsbCH85GY6l91tE",
-        //    authDomain: "focus-notifications.firebaseapp.com",
-        //    databaseURL: NotificationSettings.firebaseDatabaseUrl,
-        //    projectId: "focus-notifications",
-        //    storageBucket: "focus-notifications.appspot.com",
-        //    messagingSenderId: "95627638743"
-        //};
     }
 
     initializeNotificationGroups() {

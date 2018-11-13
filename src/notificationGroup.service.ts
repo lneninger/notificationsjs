@@ -18,6 +18,11 @@ export class NotificationGroupService {
 
 
     static notificationGroupTableName = 'notification-groups';
+    static connectedInGroupTableName = 'connected-in-groups'
+
+    // Connected reference for this group. The record key must be the same of general notification module connected key
+    connectedRef: any;
+
     private _notificationGroupKey: string;
     get notificationGroupKey() {
         return this._notificationGroupKey;
@@ -82,29 +87,36 @@ export class NotificationGroupService {
         let internalNotificationGroupKey = notificationGroupKey || this.notificationGroupKey;
 
         let connectedRef: any;
-        if (!this.notification.currentSessionId) {
-            connectedRef = this.database.ref(`connected/${this.notificationGroupKey}`).push();
-            this.notification.currentSessionId = connectedRef.key;
-        }
-        else {
-            connectedRef = this.database.ref(`connected/${this.notificationGroupKey}/${this.notification.currentSessionId}`);
-        }
 
-        connectedRef.onDisconnect().remove();
-        let connectedData = <INotificationGroupClient>{ clientId: this.notification.options.userId, sessionId: this.notification.currentSessionId };
-        connectedRef.set(connectedData);
+
+        let connectedData = <INotificationGroupClient>{ clientId: this.notification.options.clientId, sessionId: this.notification.currentSessionId };
+        this.database.ref(`${NotificationGroupService.connectedInGroupTableName}/${this.notificationGroupKey}`).child(this.notification.connectedKey).set(connectedData);
+        this.connectedRef = this.database.ref(`${NotificationGroupService.connectedInGroupTableName}/${this.notificationGroupKey}/${this.notification.connectedKey}`);
+        this.connectedRef.onDisconnect().remove();
+
+        //if (!this.notification.currentSessionId) {
+        //    connectedRef = this.database.ref(`connected/${this.notificationGroupKey}`).push();
+        //    this.notification.currentSessionId = connectedRef.key;
+        //}
+        //else {
+        //    connectedRef = this.database.ref(`connected/${this.notificationGroupKey}/${this.notification.currentSessionId}`);
+        //}
+
+        //connectedRef.onDisconnect().remove();
+        //let connectedData = <INotificationGroupClient>{ clientId: this.notification.options.userId, sessionId: this.notification.currentSessionId };
+        //connectedRef.set(connectedData);
 
         this.initializeWatchConnected();
     }
 
     initializeWatchConnected() {
-        this.database.ref(`connected/${this.notificationGroupKey}`).on('child_added', snapshot => {
+        this.database.ref(`${NotificationGroupService.connectedInGroupTableName}/${this.notificationGroupKey}`).on('child_added', snapshot => {
             //debugger;
             let key = snapshot.key;
             let data = <INotificationGroupClient>snapshot.val();
             //debugger;
             // If connected udser is not the current user send connection event
-            if (data.clientId != this.notification.options.userId) {
+            if (data.clientId != this.notification.options.clientId) {
                 this.onClientConnected.next(data);
             }
             //this.onClientConnected.complete();

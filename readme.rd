@@ -1,4 +1,4 @@
-#hipalanet-notificationsjs
+# hipalanet-notificationsjs
 
 ## Synopsis
 hipalanet-notificationnjs is a javascript engine to integrate chat in your site with only few steps.

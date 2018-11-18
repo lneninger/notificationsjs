@@ -1,6 +1,13 @@
-## Synopsis
+#hipalanet-notificationsjs
 
-At the top of the file there should be a short introduction and/ or overview that explains **what** the project is. This description should match descriptions added for package managers (Gemspec, package.json, etc.)
+## Synopsis
+hipalanet-notificationnjs is a javascript engine to integrate chat in your site with only few steps.
+
+## Instalation
+To use hipalanet-notificationsjs in your project install it via [npm](https://www.npmjs.com/package/hipalanet-notificationsjs):
+```
+npm i hipalanet-notificationsjs --save
+```
 
 ## Code Example
 

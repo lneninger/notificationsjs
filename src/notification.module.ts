@@ -1,6 +1,6 @@
 import { HtmlHelpers } from './helpers/html';
 import { NotificationGroupService } from './notificationgroup.service';
-import { INotificationGroupOptions, IFocusNotificationOptions, OnChannelNotificationEventArgs, INotificationGroupClient, IConnected} from './models'
+import { INotificationGroupOptions, IFocusNotificationOptions, OnChannelNotificationEventArgs, INotificationGroupClient, IConnected, IClientInfo} from './models'
 import { HttpHelpers } from './helpers/http';
 import { NotificationSettings } from './notification.settings.class';
 import { NotificationHtml } from './html-elements/notificationhtml';
@@ -40,10 +40,10 @@ export class NotificationModule {
     }
 
     connectedRef: any;
-    connectedKey: string;
-    get connectedIdentifier() {
-        return this.options.clientId || this.currentSessionId;
-    }
+    //connectedKey: string;
+    //get connectedIdentifier() {
+    //    return this.options.clientId || this.currentSessionId;
+    //}
 
     private _defaultNotificationGroupKey: string;
     get defaultNotificationGroupKey() {
@@ -55,7 +55,7 @@ export class NotificationModule {
     }
 
     set currentSessionId(value) {
-        debugger;
+        //debugger;
         if (value == null) {
             HtmlHelpers.deleteCookie(this.options.currentSessionCookieName);
         }
@@ -66,7 +66,7 @@ export class NotificationModule {
 
     // returns clientId otherwise the currentSessionId
     get clientIdentifier() {
-        return this.options.clientId || this.currentSessionId;
+        return this.options.clientInfo.clientId || this.currentSessionId;
     }
 
     // Events
@@ -92,6 +92,10 @@ export class NotificationModule {
         this.options = {
             ...defaultOptions, ...(options || {})
         };
+
+        this.options.clientInfo == this.options.clientInfo || <IClientInfo>{ clientId: null, pictureUrl: null };
+        this.options.clientInfo.clientId = this.options.clientInfo.clientId || null;
+        this.options.clientInfo.pictureUrl = this.options.clientInfo.pictureUrl || null;
 
         // Events
         this.onInitialized = new Subject<boolean>();
@@ -135,8 +139,6 @@ export class NotificationModule {
             this.onInitialized.next(true);
             this.onInitialized.complete();
         });
-
-        
     }
 
     initializeApp() {
@@ -151,11 +153,15 @@ export class NotificationModule {
                 this.database = this.firebase.database();
                 console.log('Application Name: ', this.firebase.name);
 
+                //debugger;
+                if (this.currentSessionId == null) {
+                    this.currentSessionId = this.database.ref(`${NotificationModule.connectedTableName}`).push().key;
+                }
+               
 
-                this.connectedKey = this.database.ref(`${NotificationModule.connectedTableName}`).push().key;
-                let connected = <IConnected>{ clientId: this.options.clientId, sessionId: this.connectedKey };
-                this.database.ref(`${NotificationModule.connectedTableName}/${this.connectedKey}`).set(connected);
-                this.connectedRef = this.database.ref(`${NotificationModule.connectedTableName}/${this.connectedKey}`);
+                let connected = <IConnected>{ clientInfo: this.options.clientInfo, sessionId: this.currentSessionId };
+                this.database.ref(`${NotificationModule.connectedTableName}/${this.currentSessionId}`).set(connected);
+                this.connectedRef = this.database.ref(`${NotificationModule.connectedTableName}/${this.currentSessionId}`);
                 this.connectedRef.onDisconnect().remove();
 
                 this.setupScriptsDone = true;

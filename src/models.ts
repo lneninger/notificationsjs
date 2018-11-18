@@ -10,7 +10,12 @@ export interface IFocusNotificationOptions {
     currentUserCookieName?: string;
     currentSessionCookieName?: string;
     currentSessionCookieExpiresInMinutes?: number;
+    clientInfo: IClientInfo;
+}
+
+export interface IClientInfo {
     clientId?: string;
+    pictureUrl?: string;
 }
 
 export interface INotificationGroupOptions {
@@ -18,28 +23,39 @@ export interface INotificationGroupOptions {
 }
 
 export interface IConnected {
-    clientId: string;
+    clientInfo: IClientInfo;
     sessionId: string;
 }
 
 export interface INotificationGroupClient {
-    clientId: string;
+    clientInfo: IClientInfo;
     sessionId: string;
     channelRef?: any;
     channel: INotificationChannel;
     notifications: IChannelNotification[];
+    unreadMessages: number;
 }
 
 export class NotificationGroupClient implements INotificationGroupClient {
-    clientId: string;
+    clientInfo: IClientInfo;
     sessionId: string;
     channelRef?: any;
     channel: INotificationChannel;
     notifications: IChannelNotification[];
+    unreadMessages: number;
+
+    constructor(client: INotificationGroupClient) {
+        this.clientInfo = client.clientInfo;
+        this.channelRef = client.channelRef;
+        this.channel = client.channel;
+        this.notifications = client.notifications;
+        this.sessionId = client.sessionId;
+        this.unreadMessages = client.unreadMessages || 0;
+    }
 
     // returns clientId otherwise the currentSessionId
     get clientIdentifier() {
-        return this.clientId || this.sessionId;
+        return this.clientInfo.clientId || this.sessionId;
     }
 }
 
@@ -66,10 +82,12 @@ export class NotificationChannel implements INotificationChannel {
 }
 
 export interface IChannelNotification {
+    key?: string;
     sender: string;
     receiver: string;
     message: string;
     createdAt?: any;
+    read?: boolean;
 }
 
 export class ChannelNotification implements IChannelNotification {
@@ -78,6 +96,7 @@ export class ChannelNotification implements IChannelNotification {
     receiver: string;
     message: string;
     createdAt?: any;
+    read?: boolean;
 
     constructor(sender: string, receiver: string, message: string) {
         this.sender = sender;
@@ -89,7 +108,10 @@ export class ChannelNotification implements IChannelNotification {
 
 
 export interface OnChannelNotificationEventArgs {
+    direction: ChannelNotificationDirection;
     notificationChannelService: NotificationChannelService;
     channelNotification: ChannelNotification;
 
 }
+
+export declare type ChannelNotificationDirection = 'sent' | 'received';

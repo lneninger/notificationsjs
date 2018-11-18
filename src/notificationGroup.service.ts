@@ -4,13 +4,13 @@ import { NotificationChannelService } from './notificationchannel.service';
 import { Subject, Observable, of, pipe } from 'rxjs';
 import { mergeMap, map } from 'rxjs/operators';
 import { NotificationMessage } from './notificationmessage.class';
-import { INotificationGroupOptions, INotificationGroupClient, OnChannelNotificationEventArgs } from './models';
+import { INotificationGroupOptions, INotificationGroupClient, OnChannelNotificationEventArgs, NotificationGroupClient } from './models';
 
 
 
 export class NotificationGroupService {
     // Events
-    onClientConnected: Subject<any> = new Subject<any>();
+    onClientConnected: Subject<NotificationGroupClient> = new Subject<NotificationGroupClient>();
 
     // Properties
     //currentSessionId: string;
@@ -56,6 +56,11 @@ export class NotificationGroupService {
         return this._onChannelNotificationSent;
     }
 
+    private _onChannelNotification: Subject<OnChannelNotificationEventArgs> = new Subject<OnChannelNotificationEventArgs>();
+    get onChannelNotification() {
+        return this._onChannelNotification;
+    }
+
     constructor(public notification: NotificationModule, defaultNotificationGroupKey: string, private database: any, options: INotificationGroupOptions) {
 
         this._notificationGroupKey = defaultNotificationGroupKey;
@@ -85,26 +90,13 @@ export class NotificationGroupService {
 
     connectToGroup(notificationGroupKey?: string) {
         let internalNotificationGroupKey = notificationGroupKey || this.notificationGroupKey;
-
         let connectedRef: any;
 
-
-        let connectedData = <INotificationGroupClient>{ clientId: this.notification.options.clientId, sessionId: this.notification.currentSessionId };
-        this.database.ref(`${NotificationGroupService.connectedInGroupTableName}/${this.notificationGroupKey}`).child(this.notification.connectedKey).set(connectedData);
-        this.connectedRef = this.database.ref(`${NotificationGroupService.connectedInGroupTableName}/${this.notificationGroupKey}/${this.notification.connectedKey}`);
+        //debugger;
+        let connectedData = <INotificationGroupClient>{ clientInfo: this.notification.options.clientInfo, sessionId: this.notification.currentSessionId };
+        this.database.ref(`${NotificationGroupService.connectedInGroupTableName}/${this.notificationGroupKey}`).child(this.notification.currentSessionId).set(connectedData);
+        this.connectedRef = this.database.ref(`${NotificationGroupService.connectedInGroupTableName}/${this.notificationGroupKey}/${this.notification.currentSessionId}`);
         this.connectedRef.onDisconnect().remove();
-
-        //if (!this.notification.currentSessionId) {
-        //    connectedRef = this.database.ref(`connected/${this.notificationGroupKey}`).push();
-        //    this.notification.currentSessionId = connectedRef.key;
-        //}
-        //else {
-        //    connectedRef = this.database.ref(`connected/${this.notificationGroupKey}/${this.notification.currentSessionId}`);
-        //}
-
-        //connectedRef.onDisconnect().remove();
-        //let connectedData = <INotificationGroupClient>{ clientId: this.notification.options.userId, sessionId: this.notification.currentSessionId };
-        //connectedRef.set(connectedData);
 
         this.initializeWatchConnected();
     }
@@ -114,20 +106,23 @@ export class NotificationGroupService {
             //debugger;
             let key = snapshot.key;
             let data = <INotificationGroupClient>snapshot.val();
+            let connected = new NotificationGroupClient(data);
             //debugger;
             // If connected udser is not the current user send connection event
-            if (data.clientId != this.notification.options.clientId) {
-                this.onClientConnected.next(data);
+            if (connected.clientIdentifier != this.notification.clientIdentifier && this.getNotificationChannelByClient(connected).length == 0) {
+                this.createNotificationChannel(connected).subscribe(channelService => {
+                    this.onClientConnected.next(connected);
+                });
             }
             //this.onClientConnected.complete();
         });
     }
 
-    getNotificationChannelByClient(client: INotificationGroupClient) {
-        return this.notificationChannels.filter(o => o.client.sessionId == client.sessionId);
+    getNotificationChannelByClient(client: NotificationGroupClient): NotificationChannelService[] {
+        return this.notificationChannels.filter(o => o.client.clientIdentifier == client.clientIdentifier);
     }
 
-    onSelectNotificationGroupClient(client: INotificationGroupClient): Observable<NotificationChannelService> {
+    onSelectNotificationGroupClient(client: NotificationGroupClient): Observable<NotificationChannelService> {
 
         let observable: Observable<NotificationChannelService>;
         //debugger;
@@ -136,20 +131,30 @@ export class NotificationGroupService {
                 observable = of(channel[0]);
         }
         else {
-            observable = NotificationChannelService.create(client, this).pipe<NotificationChannelService>(mergeMap(channelService => {
-                this.notificationChannels.push(channelService);
-                channelService.onChannelNotificationReceived.subscribe((args: OnChannelNotificationEventArgs) => {
-                    this.channelNotificationReceived(args);
-                });
-                channelService.onChannelNotificationSent.subscribe((args: OnChannelNotificationEventArgs) => {
-                    this.channelNotificationSent(args);
-                });
-                return of(channelService)
-            }));
+            this.createNotificationChannel(client);
             //debugger;
             
         }
-       
+
+        return observable;
+    }
+
+    createNotificationChannel(client: NotificationGroupClient) {
+        let observable: Observable<NotificationChannelService>;
+        observable = NotificationChannelService.create(client, this).pipe<NotificationChannelService>(mergeMap(channelService => {
+            this.notificationChannels.push(channelService);
+            channelService.onChannelNotificationReceived.subscribe((args: OnChannelNotificationEventArgs) => {
+                this.channelNotificationReceived(args);
+            });
+            channelService.onChannelNotificationSent.subscribe((args: OnChannelNotificationEventArgs) => {
+                this.channelNotificationSent(args);
+            });
+
+            channelService.onChannelNotification.subscribe((args: OnChannelNotificationEventArgs) => {
+                this.channelNotification(args);
+            });
+            return of(channelService)
+        }));
 
         return observable;
     }
@@ -162,4 +167,7 @@ export class NotificationGroupService {
         this.onChannelNotificationSent.next(args);
     }
 
+    channelNotification(args: OnChannelNotificationEventArgs) {
+        this.onChannelNotification.next(args);
+    }
 }

@@ -31,6 +31,9 @@ var NotificationModule = /** @class */ (function () {
             currentSessionCookieExpiresInMinutes: 60
         };
         this.options = __assign({}, defaultOptions, (options || {}));
+        this.options.clientInfo == this.options.clientInfo || { clientId: null, pictureUrl: null };
+        this.options.clientInfo.clientId = this.options.clientInfo.clientId || null;
+        this.options.clientInfo.pictureUrl = this.options.clientInfo.pictureUrl || null;
         // Events
         this.onInitialized = new rxjs_1.Subject();
         this.http = new http_1.HttpHelpers();
@@ -39,13 +42,6 @@ var NotificationModule = /** @class */ (function () {
     Object.defineProperty(NotificationModule.prototype, "accountKey", {
         get: function () {
             return this._accountKey;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(NotificationModule.prototype, "connectedIdentifier", {
-        get: function () {
-            return this.options.clientId || this.currentSessionId;
         },
         enumerable: true,
         configurable: true
@@ -62,7 +58,7 @@ var NotificationModule = /** @class */ (function () {
             return html_1.HtmlHelpers.getCookie(this.options.currentSessionCookieName);
         },
         set: function (value) {
-            debugger;
+            //debugger;
             if (value == null) {
                 html_1.HtmlHelpers.deleteCookie(this.options.currentSessionCookieName);
             }
@@ -76,7 +72,7 @@ var NotificationModule = /** @class */ (function () {
     Object.defineProperty(NotificationModule.prototype, "clientIdentifier", {
         // returns clientId otherwise the currentSessionId
         get: function () {
-            return this.options.clientId || this.currentSessionId;
+            return this.options.clientInfo.clientId || this.currentSessionId;
         },
         enumerable: true,
         configurable: true
@@ -120,10 +116,13 @@ var NotificationModule = /** @class */ (function () {
                 _this.firebase = firebase.initializeApp(_this.firebaseConfig, notification_settings_class_1.NotificationSettings.firebaseLocalApplicationName);
                 _this.database = _this.firebase.database();
                 console.log('Application Name: ', _this.firebase.name);
-                _this.connectedKey = _this.database.ref("" + NotificationModule.connectedTableName).push().key;
-                var connected = { clientId: _this.options.clientId, sessionId: _this.connectedKey };
-                _this.database.ref(NotificationModule.connectedTableName + "/" + _this.connectedKey).set(connected);
-                _this.connectedRef = _this.database.ref(NotificationModule.connectedTableName + "/" + _this.connectedKey);
+                //debugger;
+                if (_this.currentSessionId == null) {
+                    _this.currentSessionId = _this.database.ref("" + NotificationModule.connectedTableName).push().key;
+                }
+                var connected = { clientInfo: _this.options.clientInfo, sessionId: _this.currentSessionId };
+                _this.database.ref(NotificationModule.connectedTableName + "/" + _this.currentSessionId).set(connected);
+                _this.connectedRef = _this.database.ref(NotificationModule.connectedTableName + "/" + _this.currentSessionId);
                 _this.connectedRef.onDisconnect().remove();
                 _this.setupScriptsDone = true;
                 observer.next();

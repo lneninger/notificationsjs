@@ -1,4 +1,12 @@
 "use strict";
+var __assign = (this && this.__assign) || Object.assign || function(t) {
+    for (var s, i = 1, n = arguments.length; i < n; i++) {
+        s = arguments[i];
+        for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p))
+            t[p] = s[p];
+    }
+    return t;
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 var rxjs_1 = require("rxjs");
 var operators_1 = require("rxjs/operators");
@@ -8,8 +16,9 @@ var NotificationChannelService = /** @class */ (function () {
         this.notificationGroupService = notificationGroupService;
         this._onChannelNotificationReceived = new rxjs_1.Subject();
         this._onChannelNotificationSent = new rxjs_1.Subject();
+        this._onChannelNotification = new rxjs_1.Subject();
+        this._onChannelNotificationUpdated = new rxjs_1.Subject();
         this.channelNotifications = [];
-        //this.notificationChannelTableRef = this.database.ref(NotificationChannelService.notificationChannelTableName);
         this._client = client;
     }
     Object.defineProperty(NotificationChannelService.prototype, "onChannelNotificationReceived", {
@@ -22,6 +31,20 @@ var NotificationChannelService = /** @class */ (function () {
     Object.defineProperty(NotificationChannelService.prototype, "onChannelNotificationSent", {
         get: function () {
             return this._onChannelNotificationSent;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(NotificationChannelService.prototype, "onChannelNotification", {
+        get: function () {
+            return this._onChannelNotification;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(NotificationChannelService.prototype, "onChannelNotificationUpdated", {
+        get: function () {
+            return this._onChannelNotificationUpdated;
         },
         enumerable: true,
         configurable: true
@@ -59,19 +82,20 @@ var NotificationChannelService = /** @class */ (function () {
     };
     NotificationChannelService.create = function (client, notificationGroup) {
         var resultObj = new NotificationChannelService(notificationGroup, client);
-        return resultObj.createFirebaseChannel()
-            .pipe(operators_1.map(function (o) { return resultObj; }));
+        var result = resultObj.createFirebaseChannel()
+            .pipe(operators_1.mergeMap(function (bool) {
+            return rxjs_1.of(resultObj);
+        }));
+        return result;
     };
     NotificationChannelService.prototype.createFirebaseChannel = function () {
         var _this = this;
         //debugger;
         var observable = rxjs_1.of(this.client)
             .pipe(operators_1.mergeMap(function (client) {
-            //debugger
             return _this.referenceNotificationChannelForClient(client);
         }))
             .pipe(operators_1.mergeMap(function (status) {
-            //debugger;
             _this.initializeNotificationWatch();
             return rxjs_1.of(true);
         }));
@@ -79,7 +103,7 @@ var NotificationChannelService = /** @class */ (function () {
     };
     NotificationChannelService.prototype.referenceNotificationChannelForClient = function (client) {
         var _this = this;
-        var channelUserIds = [this.notificationGroupService.notification.clientIdentifier, client.clientId].sort(function (a, b) { return a < b ? -1 : a > b ? 1 : 0; });
+        var channelUserIds = [this.notificationGroupService.notification.clientIdentifier, client.clientIdentifier].sort(function (a, b) { return a < b ? -1 : a > b ? 1 : 0; });
         var notificationChannelIdentifier = channelUserIds.join('|');
         var pipeObservable = rxjs_1.Observable.create(function (observer) {
             //let notificationChannelKey: string;
@@ -115,7 +139,6 @@ var NotificationChannelService = /** @class */ (function () {
             var notificationsObj = snapshot.val();
             if (notificationsObj == null)
                 return;
-            //debugger;
             var keys = Object.getOwnPropertyNames(notificationsObj);
             var result = [];
             for (var _i = 0, keys_1 = keys; _i < keys_1.length; _i++) {
@@ -123,30 +146,49 @@ var NotificationChannelService = /** @class */ (function () {
                 var notification = notificationsObj[key];
                 result.push(notification);
             }
-            //this.channelNotifications.push(notificationsObj.map(res => {
-            //    let notificationKeys = Object.getOwnPropertyNames(res);
-            //    for (let notificationKey of notificationKeys) {
-            //    }
-            //}));
         });
         this.database.ref("" + this.notificationChannelNotificationsRefPath).on('child_added', function (snapshot) {
-            //debugger;
             var notification = snapshot.val();
             _this.channelNotifications.push(notification);
-            var eventArgs = { channelNotification: notification, notificationChannelService: _this };
+            var eventArgs = { direction: 'received', channelNotification: notification, notificationChannelService: _this };
             _this.onChannelNotificationReceived.next(eventArgs);
+            _this.onChannelNotification.next(eventArgs);
+        });
+        this.database.ref("" + this.notificationChannelNotificationsRefPath).on('child_changed', function (snapshot) {
+            //debugger;
+            var notification = snapshot.val();
+            var matches = _this.channelNotifications.filter(function (item) { return item.key == notification.key; });
+            if (matches.length > 0) {
+                var indexOf = _this.channelNotifications.indexOf(matches[0]);
+                var newNotification = __assign({}, matches[0], notification);
+                _this.channelNotifications.splice(indexOf, 1, newNotification);
+                var eventArgs = { direction: 'received', channelNotification: notification, notificationChannelService: _this };
+                _this.client.unreadMessages = _this.channelNotifications.filter(function (o) { return !o.read; }).length;
+                _this.onChannelNotificationUpdated.next(eventArgs);
+                _this.onChannelNotification.next(eventArgs);
+            }
         });
     };
     NotificationChannelService.prototype.sendMessage = function (message) {
-        //if (!this.chatId) {
-        //    this.createChat();
-        //}
-        var notification = new models_1.ChannelNotification(this.notificationGroupService.notification.currentSessionId, this.client.sessionId, message);
+        var senderIdentifier = this.notificationGroupService.notification.clientIdentifier;
+        var receiverIdentifier = this.client.clientIdentifier;
+        var notification = new models_1.ChannelNotification(senderIdentifier, receiverIdentifier, message);
         var messageId = this.notificationChannelNotificationsRef.push().key;
         notification.key = messageId;
         this.database.ref(this.notificationChannelNotificationsRefPath + "/" + messageId).set(notification);
-        var eventArgs = { channelNotification: notification, notificationChannelService: this };
+        var eventArgs = { direction: 'sent', channelNotification: notification, notificationChannelService: this };
         this.onChannelNotificationSent.next(eventArgs);
+        this.onChannelNotification.next(eventArgs);
+    };
+    NotificationChannelService.prototype.setMessageAsRead = function (messageId) {
+        this.database.ref(this.notificationChannelNotificationsRefPath + "/" + messageId).update({ 'read': true });
+    };
+    NotificationChannelService.prototype.markMessagesAsRead = function () {
+        //debugger;
+        var notRead = this.channelNotifications.filter(function (notification) { return !notification.read; });
+        for (var i = 0; i < notRead.length; i++) {
+            this.setMessageAsRead(notRead[i].key);
+        }
     };
     NotificationChannelService.chatAttributeName = 'chat';
     NotificationChannelService.notificationChannelTableName = 'notification-channel';

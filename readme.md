@@ -17,9 +17,9 @@ npm i hipalanet-notificationsjs --save
 Navigate to [notifications admin](https://focus-notifications.firebaseapp.com) and sign you up.
 
 ### Add Notification Group
-Acces the menu option **Notification Groups** and create your first group.
+You must access the menu option **Notification Groups** and create your first group.
 
-> Notification Groups are like applications or sites. So, generally speaking each of your applications will have it own N**Notification Groups**
+> Notification Groups are like applications or sites. So, generally speaking each of your applications will have it own **Notification Groups**
 
 
 ## Code Example
